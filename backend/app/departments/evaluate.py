@@ -43,12 +43,17 @@ def evaluate_departments(session: Session, version_id: int, truth_path: str | Pa
             st = stats[d]
             st["expected"] += 1
             hit = None
-            for o in occs:
-                if o.department != d or o.id in used:
-                    continue
-                hay = f"{o.name} {o.description or ''} {o.category or ''}".lower()
-                if any(k.lower() in hay for k in ti["match"]):
-                    hit = o
+            # Prefer a match on the item's name; fall back to its description.
+            for field in ("name", "all"):
+                for o in occs:
+                    if o.department != d or o.id in used:
+                        continue
+                    hay = o.name.lower() if field == "name" else \
+                        f"{o.name} {o.description or ''} {o.category or ''}".lower()
+                    if any(k.lower() in hay for k in ti["match"]):
+                        hit = o
+                        break
+                if hit:
                     break
             if hit is None:
                 problems.append(f"sc {ts['number']} {d}: MISSED {ti['name']}")

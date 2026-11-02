@@ -11,15 +11,18 @@ from __future__ import annotations
 import re
 
 from ..extraction.cues import normalize_name
-from ..extraction.heuristic_extractor import NUMBER_WORDS
+from ..extraction.heuristic_extractor import NUMBER_WORDS, VERSION_WORDS
 from ..models.enums import ElementType
 from .base import DepartmentSpec, ItemOut, SceneContext
 
 _SENT_RE = re.compile(r"(?<=[.!?])\s+")
 _NUM_RE = re.compile(r"\b(" + "|".join(NUMBER_WORDS) + r"|\d+|A DOZEN|DOZENS OF)\s+((?:[\w'-]+\s+){0,2})$", re.I)
 _SINGULAR_RE = re.compile(r"\b(a|an|his|her|their|its|the|one)\s+((?:[\w'-]+\s+){0,2})$", re.I)
-_POSSESSIVE_RE = re.compile(r"\b([A-Z][\w-]*)['’]s\s+((?:[\w-]+\s+){0,2})$")
-SINGULAR_S = {"bus", "glass", "dress", "class", "chess", "grass", "boss", "cross", "series"}
+_POSSESSIVE_RE = re.compile(r"\b([A-Z][\w-]*)['’][sS]\s+((?:[\w-]+\s+){0,2})$")
+SINGULAR_S = {"bus", "glass", "dress", "class", "chess", "grass", "boss", "cross", "series",
+              # always-plural nouns that mean one object
+              "scissors", "handcuffs", "trousers", "pants", "jeans", "glasses", "spectacles", "pliers",
+              "goggles", "binoculars", "bell-bottoms", "shorts"}
 
 
 def _number(word: str) -> int | None:
@@ -48,9 +51,10 @@ class DepartmentHeuristicExtractor:
 
     def set_script_context(self, cast: list[str], locations: list[str]) -> None:
         self.cast = sorted(cast, key=len, reverse=True)
-        for c in self.cast:
+        # A bare token maps to the SHORTEST name containing it: "RAGHAV" -> RAGHAV, not OLD RAGHAV.
+        for c in sorted(cast, key=len):
             for tok in c.split():
-                if len(tok) > 2:
+                if len(tok) > 2 and tok not in VERSION_WORDS:
                     self.cast_tokens.setdefault(tok, c)
 
     def _matches(self, spec: DepartmentSpec, sentence: str) -> list[tuple[int, int, str]]:
