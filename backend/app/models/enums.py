@@ -42,6 +42,7 @@ class ElementType(str, enum.Enum):
     SHOT = "shot"
     PAGE_HEADER = "page_header"    # page numbers, (CONTINUED), MORE, revision marks
     TITLE_PAGE = "title_page"
+    NON_PRINTING = "non_printing"  # Fountain notes/sections/synopses — not part of the shot script
     UNKNOWN = "unknown"            # could not classify -> surfaces in coverage
 
 
@@ -94,6 +95,7 @@ class HeadingStatus(str, enum.Enum):
 class LengthMethod(str, enum.Enum):
     PDF_GEOMETRY = "pdf_geometry"  # vertical extent on the physical page
     LINE_COUNT = "line_count"      # computed pagination (DOCX/FDX/Fountain)
+    SOURCE_DOCUMENT = "source_document"  # taken from the file itself (Final Draft SceneProperties)
 
 
 class CharacterKind(str, enum.Enum):

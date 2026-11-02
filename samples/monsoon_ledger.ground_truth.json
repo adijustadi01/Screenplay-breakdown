@@ -1,0 +1,141 @@
+{
+  "_about": "Hand-written ground truth for samples/monsoon_ledger.* — used to measure import (Step 1) and extraction (Step 2) accuracy. presence: present | off_screen | voice_only | mentioned. speaking: speaking | silent. 'character' is the story character; 'casting' is set when the casting role differs from the character (Young Arjun). dialogue = number of dialogue cues in the scene.",
+  "title": "MONSOON LEDGER",
+  "scene_count": 15,
+  "scenes": [
+    {"seq": 1, "number": "1", "int_ext": "INT", "time": "DAY", "effective_time": null,
+     "location_raw": "ARJUN'S HOUSE - KITCHEN", "location": ["ARJUN'S HOUSE", "KITCHEN"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "MEERA", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "DADI", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "KABIR", "presence": "off_screen", "speaking": "speaking", "dialogue": 1},
+       {"character": "VIKRAM", "presence": "mentioned", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["Vikram is only named in dialogue -> mentioned, NOT an appearance", "Dadi never speaks but is present", "Kabir is (O.S.)"]},
+    {"seq": 2, "number": "2", "int_ext": "EXT", "time": "CONTINUOUS", "effective_time": "DAY",
+     "location_raw": "ARJUN'S HOUSE", "location": ["ARJUN'S HOUSE"],
+     "characters": [
+       {"character": "KABIR", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "MRS. D'SOUZA", "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["CONTINUOUS must stay CONTINUOUS; DAY is inherited and flagged"]},
+    {"seq": 3, "number": "3", "int_ext": "INT", "time": "NIGHT", "effective_time": null,
+     "location_raw": "CITY HOSPITAL - ICU", "location": ["CITY HOSPITAL", "ICU"],
+     "characters": [
+       {"character": "DR. RAO", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "NURSE LATA", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "MEERA", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "ARJUN", "presence": "mentioned", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["'Arjun-ji' and 'your husband' are mentions only"]},
+    {"seq": 4, "number": "4", "int_ext": "INT", "time": "NIGHT", "effective_time": null,
+     "location_raw": "CITY HOSPITAL - CORRIDOR", "location": ["CITY HOSPITAL", "CORRIDOR"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "MEERA", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "DR. RAO", "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["Dr. Rao walks through silently -> present, silent", "'From him?' names nobody -> no mention recorded"]},
+    {"seq": 5, "number": "5", "int_ext": "EXT", "time": "DUSK", "effective_time": null,
+     "location_raw": "CRAWFORD MARKET", "location": ["CRAWFORD MARKET"],
+     "characters": [
+       {"character": "VIKRAM", "presence": "present", "speaking": "speaking", "dialogue": 3},
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "GOON 1", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "GOONS", "kind": "group", "quantity_min": 3, "quantity_max": 3, "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "background": [{"description": "a huge crowd of shoppers", "quantity_min": null, "quantity_max": null, "needs_review": true}],
+     "traps": ["DUSK must not become NIGHT", "'a huge crowd' = unknown headcount (Stage 2 background) — never a number", "GOON 1 is one of the THREE GOONS", "VIKRAM (CONT'D) is the same character"]},
+    {"seq": 6, "number": "6", "int_ext": "INT/EXT", "time": "NIGHT", "effective_time": null,
+     "location_raw": "ARJUN'S CAR - MOVING", "location": ["ARJUN'S CAR"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "MEERA", "presence": "voice_only", "speaking": "speaking", "dialogue": 2}
+     ],
+     "traps": ["MEERA (V.O.) on the phone is voice_only, not present", "MOVING is a modifier, not a sub-location"]},
+    {"seq": 7, "number": "7", "int_ext": "INT", "time": "NIGHT", "effective_time": null,
+     "location_raw": "ARJUNS HOUSE - BEDROOM", "location": ["ARJUN'S HOUSE", "BEDROOM"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "VIKRAM", "presence": "mentioned", "speaking": "silent", "dialogue": 0}
+     ],
+     "props_note": "framed photograph (Young Arjun + Young Vikram), brass key — Stage 2",
+     "traps": ["'ARJUNS HOUSE' spelling variant must reconcile to ARJUN'S HOUSE (review item)", "Vikram appears only in a photograph -> not present"]},
+    {"seq": 8, "number": "8", "int_ext": "EXT", "time": "DAY", "effective_time": null,
+     "location_raw": "VILLAGE RIVERBANK", "location": ["VILLAGE RIVERBANK"],
+     "characters": [
+       {"character": "ARJUN", "casting": "YOUNG ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "VIKRAM", "casting": "YOUNG VIKRAM", "presence": "present", "speaking": "speaking", "dialogue": 2}
+     ],
+     "traps": ["Heading time 'DAY (FLASHBACK)' -> DAY", "YOUNG ARJUN = character ARJUN, separate casting role"]},
+    {"seq": 9, "number": "8A", "int_ext": "EXT", "time": "LATER", "effective_time": "DAY",
+     "location_raw": "VILLAGE RIVERBANK", "location": ["VILLAGE RIVERBANK"],
+     "characters": [
+       {"character": "ARJUN", "casting": "YOUNG ARJUN", "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["Inserted scene number 8A preserved", "LATER inherits DAY, flagged"]},
+    {"seq": 10, "number": "9", "omitted": true, "int_ext": "UNKNOWN", "time": "UNSPECIFIED", "effective_time": null,
+     "location_raw": null, "location": null, "characters": [],
+     "traps": ["OMITTED scene kept as a placeholder, length 0"]},
+    {"seq": 11, "number": null, "number_status": "missing", "int_ext": "INT", "time": "DAY", "effective_time": null,
+     "location_raw": "POLICE STATION", "location": ["POLICE STATION"],
+     "characters": [
+       {"character": "INSPECTOR SHARMA", "aliases": ["SHARMA"], "presence": "present", "speaking": "speaking", "dialogue": 3},
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "CONSTABLE", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "VIKRAM", "presence": "mentioned", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["No scene number — must be flagged, NOT generated", "Cue changes from INSPECTOR SHARMA to SHARMA (alias)"]},
+    {"seq": 12, "number": "11", "int_ext": "EXT", "time": "DAWN", "effective_time": null,
+     "location_raw": "CITY HOSPITAL", "location": ["CITY HOSPITAL"],
+     "characters": [
+       {"character": "MEERA", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "KABIR", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "NURSE LATA", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "ARJUN", "presence": "mentioned", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["DAWN must not become DAY", "'Papa' refers to Arjun -> mentioned"]},
+    {"seq": 13, "number": "12", "heading_status": "ambiguous", "int_ext": "UNKNOWN", "time": "NIGHT", "effective_time": null,
+     "location_raw": "HOSPITAL ROOFTOP", "location": ["CITY HOSPITAL", "ROOFTOP"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 3},
+       {"character": "VIKRAM", "presence": "present", "speaking": "speaking", "dialogue": 3},
+       {"character": "VIKRAM'S MEN", "kind": "group", "quantity_min": null, "quantity_max": null, "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["Heading has no INT/EXT -> UNKNOWN + review, never guessed", "'several of his men' = unknown headcount", "HOSPITAL ROOFTOP should be proposed under CITY HOSPITAL"]},
+    {"seq": 14, "number": "13", "int_ext": "INT", "time": "LATER", "effective_time": "NIGHT",
+     "location_raw": "ARJUN'S HOUSE - KITCHEN", "location": ["ARJUN'S HOUSE", "KITCHEN"],
+     "characters": [
+       {"character": "MEERA", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "DADI", "presence": "present", "speaking": "speaking", "dialogue": 1},
+       {"character": "KABIR", "presence": "present", "speaking": "silent", "dialogue": 0},
+       {"character": "ARJUN", "presence": "present", "speaking": "silent", "dialogue": 0}
+     ],
+     "traps": ["LATER inherits NIGHT from the previous scene (a different location) — flagged for review", "Dadi speaks here for the first time"]},
+    {"seq": 15, "number": "14", "int_ext": "EXT", "time": "NIGHT", "effective_time": null,
+     "location_raw": "ARJUN'S HOUSE - TERRACE", "location": ["ARJUN'S HOUSE", "TERRACE"],
+     "characters": [
+       {"character": "ARJUN", "presence": "present", "speaking": "speaking", "dialogue": 2},
+       {"character": "MEERA", "presence": "present", "speaking": "speaking", "dialogue": 2}
+     ],
+     "traps": ["'he' (Vikram) is not named -> no mention recorded"]}
+  ],
+  "characters": {
+    "ARJUN": {"casting_roles": ["ADULT ARJUN (45)", "YOUNG ARJUN (10)"]},
+    "VIKRAM": {"casting_roles": ["ADULT VIKRAM (50)", "YOUNG VIKRAM (12)"]},
+    "MEERA": {}, "DADI": {}, "KABIR": {}, "MRS. D'SOUZA": {}, "DR. RAO": {}, "NURSE LATA": {},
+    "INSPECTOR SHARMA": {"aliases": ["SHARMA"]}, "CONSTABLE": {}, "GOON 1": {},
+    "GOONS": {"kind": "group"}, "VIKRAM'S MEN": {"kind": "group"}
+  },
+  "locations": {
+    "ARJUN'S HOUSE": ["KITCHEN", "BEDROOM", "TERRACE"],
+    "CITY HOSPITAL": ["ICU", "CORRIDOR", "ROOFTOP"],
+    "CRAWFORD MARKET": [], "ARJUN'S CAR": [], "VILLAGE RIVERBANK": [], "POLICE STATION": []
+  },
+  "format_notes": {
+    "monsoon_ledger.docx": "Styled Word export WITHOUT scene numbers: every scene must be number_status=missing and no numbers generated.",
+    "monsoon_ledger_scanned.pdf": "Image-only PDF: requires OCR (Tesseract)."
+  }
+}

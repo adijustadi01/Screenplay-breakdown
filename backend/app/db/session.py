@@ -26,3 +26,10 @@ def make_engine(url: str | None = None) -> Engine:
 
 def make_session_factory(engine: Engine) -> sessionmaker:
     return sessionmaker(bind=engine, expire_on_commit=False, future=True)
+
+
+def init_db(engine: Engine) -> None:
+    """Create tables. (Alembic migrations take over once the schema is frozen for shipping.)"""
+    from .. import models  # noqa: F401  - register mappers
+
+    models.Base.metadata.create_all(engine)

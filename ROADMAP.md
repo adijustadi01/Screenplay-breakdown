@@ -25,16 +25,16 @@ and query the results.
 
 | Step | Module | Status |
 |---|---|---|
-| 0 | Stack, folder structure, ROADMAP, DATA_MODEL, schema | ✅ done — awaiting sign-off |
-| 1 | Script import (PDF / DOCX / FDX / Fountain, OCR fallback) + coverage check | ⏳ |
-| 1b | Scene detection: headings, original numbers, page refs, 1/8-page lengths | ⏳ |
+| 0 | Stack, folder structure, ROADMAP, DATA_MODEL, schema | ✅ done (approved) |
+| 1 | Script import (PDF / DOCX / FDX / Fountain, OCR fallback) + coverage check | ✅ done — awaiting your testing |
+| 1b | Scene detection: headings, original numbers, page refs, 1/8-page lengths | ✅ done — awaiting your testing |
 | 2 | Per-scene LLM extraction: characters (present/mentioned, speaking/silent), location + sub-location, INT/EXT, time, synopsis | ⏳ |
 | 3 | Reconciliation: character aliases, location variants → review queue proposals | ⏳ |
 | 4 | Reports (computed in code): scene, character, location, character-combination, day/night cross-tabs | ⏳ |
 | 5 | Review queue UI: confirm / edit / reject with source passage; corrections propagate to reports | ⏳ |
 | 6 | Query panel: composable filters (location + INT/EXT + time + character), every number drills down | ⏳ |
-| — | Sample script (10–15 scenes) + ground-truth JSON + accuracy test | ⏳ |
-| — | Verified end-to-end on a real ~300-page script | ⏳ |
+| — | Sample script (10–15 scenes) + ground-truth JSON + accuracy test | ✅ import accuracy; extraction accuracy with Step 2 |
+| — | Verified end-to-end on a real ~300-page script | ⏳ synthetic 305-page PDF verified; needs your real script |
 
 **Stage 1 exit criteria:** a real 300-page script imports with a clean coverage report,
 extraction accuracy is measured against the sample ground truth, and every report number
@@ -85,6 +85,14 @@ breakdown sheets (one sheet per scene, colour-coded by department).
 - Stripboard / one-liner, shooting schedule, Day-Out-of-Days (DOOD) per casting role
   (SW/W/H/WF/Travel), call-sheet seeds.
 - Export compatible with Movie Magic Scheduling / StudioBinder formats where feasible.
+
+**Known limitations to revisit (from Step 1)**
+- DOCX/FDX/Fountain page breaks are computed (~55 lines/page) and break between
+  elements, so lengths can differ slightly from Final Draft's own pagination. FDX files that
+  carry `SceneProperties` use Final Draft's own lengths instead.
+- Dual dialogue in PDFs is typed by content with reduced confidence (flagged).
+- Word documents with tables (e.g. dual dialogue in tables) import table text as UNKNOWN,
+  placed at the end, flagged for review.
 
 **Later / nice-to-have**
 - Natural-language query → translated to the structured filter (filter shown, never hidden).

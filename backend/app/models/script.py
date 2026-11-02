@@ -114,7 +114,8 @@ class ScriptElement(Base):
     text: Mapped[str] = mapped_column(Text)                        # normalised text
     raw_text: Mapped[str] = mapped_column(Text)                    # exactly as imported
     line_count: Mapped[int] = mapped_column(Integer, default=1)    # rendered lines, for 1/8 pages
-    # PDF geometry in points from top of page (None for structured formats).
+    # Vertical position on its page: PDF points from the top for PDFs; line numbers
+    # (0-based, computed pagination) for DOCX/FDX/Fountain. Used for 1/8-page lengths.
     y_top: Mapped[float | None] = mapped_column(Float)
     y_bottom: Mapped[float | None] = mapped_column(Float)
     is_dual_dialogue: Mapped[bool] = mapped_column(Boolean, default=False)
