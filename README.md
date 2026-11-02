@@ -38,6 +38,19 @@ Further reading:
      and editable. Shooting days are when they are filmed, set by you. Thirty night scenes may be
      two story nights and five shooting nights. The DOOD uses shooting days only.
 
+## Use it in your browser — no install (GitHub Codespaces)
+
+Open **https://codespaces.new/adijustadi01/Screenplay-breakdown?ref=claude/nice-keller-2tlewr** and
+click **Create codespace**.
+
+- **First start:** GitHub prepares a private computer for you, which takes a few minutes the first
+  time. The app then opens in a new browser tab. If it doesn't, use the **PORTS** tab, port 8000.
+- **Privacy:** only you can open it (signed in to GitHub). Your projects stay in the codespace until
+  you delete it.
+- **Coming back later:** go to https://github.com/codespaces and click the codespace.
+- **Cost:** personal accounts get a monthly allowance of free hours, and GitHub stops an idle
+  codespace after 30 minutes.
+
 ## Windows app (installer)
 
 You can install this as a normal Windows program instead of using the developer setup below.

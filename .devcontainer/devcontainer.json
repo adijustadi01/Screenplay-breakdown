@@ -1,0 +1,19 @@
+{
+  "name": "Screenplay Breakdown",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+  "hostRequirements": { "cpus": 2 },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": {
+    "app": "bash .devcontainer/start.sh"
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "Screenplay Breakdown", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": [".devcontainer/HOW-TO-USE.md"] }
+  }
+}
