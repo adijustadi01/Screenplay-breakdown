@@ -95,3 +95,37 @@ def test_ad_can_rematch(db, project):
     old7 = db.scalars(select(Scene).where(Scene.script_version_id == a.id, Scene.scene_number == "7")).one()
     row = rematch(db, added.id, old7.id, "AD")
     assert row.method.value == "manual" and row.status.value == "changed"
+
+
+def test_departments_pending_until_changed_scenes_are_extracted(db, project):
+    from app.extraction.heuristic_extractor import HeuristicExtractor
+    a = prepared_draft(db, project)                        # old draft has departments
+    b = revised(db, project)
+    out = revise(db, a.id, b.id, HeuristicExtractor(), None, workers=1)   # cast only, no departments yet
+    rep = revision_report(db, out["revision_id"])
+    s6 = next(s for s in rep["scenes"] if s["new"] and s["new"]["number"] == "6")
+    assert "vehicles" in s6["departments_not_extracted"] and not s6["departments"]   # no false "removed"
+    assert rep["departments_not_extracted"] == 5
+
+
+def test_new_appearances_get_casting_role_by_name(db, project):
+    from app.models import CastingRole, Scene
+    from app.extraction.heuristic_extractor import HeuristicExtractor
+    a = prepared_draft(db, project, departments=False)     # ARJUN now has roles ARJUN and YOUNG ARJUN
+    b = revised(db, project)
+    revise(db, a.id, b.id, HeuristicExtractor(), None, workers=1)
+    s9a = db.scalars(select(Scene).where(Scene.script_version_id == b.id, Scene.scene_number == "9A")).one()
+    arjun_app = next(x for x in db.scalars(select(Appearance).where(Appearance.scene_id == s9a.id))
+                     if x.name_as_written == "ARJUN")
+    assert db.get(CastingRole, arjun_app.casting_role_id).name == "ARJUN"
+
+
+def test_no_false_script_wide_drops_while_departments_pending(db, project):
+    from app.extraction.heuristic_extractor import HeuristicExtractor
+    a = prepared_draft(db, project)
+    b = revised(db, project)
+    out = revise(db, a.id, b.id, HeuristicExtractor(), None, workers=1)
+    rep = revision_report(db, out["revision_id"])
+    dropped = {n for v in rep["departments"].values() for n in v["dropped_from_script"]}
+    # Only items from the OMITTED scene 7 (really gone) may be reported dropped.
+    assert dropped <= {"LAMP", "FRAMED PHOTOGRAPH", "KEY"}

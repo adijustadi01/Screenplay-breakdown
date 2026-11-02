@@ -71,22 +71,24 @@ score with `python -m app.cli dept-accuracy <version> ../samples/highway_song.gr
 **Still open (Stage 2):** live Claude accuracy on the department sample and on a real script;
 export of breakdown sheets to CSV/PDF (colour-coded per department) — not built yet.
 
-## Stage 3 — Revision tracking + scheduling reports  *(not started — do not build yet)*
+## Stage 3 — Revision tracking + scheduling  *(complete — awaiting your test on a real script)*
 
-**Revision tracking**
-- Import a revised draft as a new `ScriptVersion` (revision colour/date already in schema).
-- Scene lineage across versions (match by preserved scene number, then by content
-  similarity; A/B scene insertions, OMITTED scenes).
-- Diff report: added / omitted / changed scenes, changed headings, cast added/removed,
-  page-count deltas.
-- Carry forward human-reviewed facts to unchanged scenes; re-queue facts in changed scenes.
+| Part | Module | Status |
+|---|---|---|
+| Scene matching between drafts (number + content, renumbered/unnumbered, manual re-match, review flags) | `revisions/matcher.py`, `service.py` | ✅ |
+| Carry-forward of reviewed facts for unchanged scenes; extract only changed/added scenes | `revisions/service.py` | ✅ |
+| Revision report: scenes changed; per scene cast (characters) vs casting roles, locations, all departments; script-wide; scheduled scenes affected; coverage-aware ("not compared yet") | `revisions/diff.py` | ✅ |
+| Story days (inferred, flagged, editable) — separate from shooting days | `scheduling/story_days.py` | ✅ |
+| Shooting days, scene assignment, split scenes, reorder, auto-fill suggestion, schedule carried through a revision | `scheduling/service.py` | ✅ |
+| DOOD (SW/W/WF/SWF/H, drop/pickup) over shooting days; rows = casting requirements; one-liner with cast IDs + story days alongside | `scheduling/reports.py` | ✅ |
+| UI: Revisions tab, Schedule tab (story vs shooting panel, one-liner, DOOD, story-day editing) | `frontend/src/features/{revisions,schedule}` | ✅ |
 
-**Scheduling & DOOD**
-- Story days (script day 1, 2, …) — inferred, always reviewable.
-- Shooting venues (`shooting_venues` table already exists) mapped to story locations/sets.
-- Stripboard / one-liner, shooting schedule, Day-Out-of-Days (DOOD) per casting role
-  (SW/W/H/WF/Travel), call-sheet seeds.
-- Export compatible with Movie Magic Scheduling / StudioBinder formats where feasible.
+**Stage 3 acceptance:** `pytest tests/test_stage3_acceptance.py -v`.
+**Sample:** `samples/monsoon_ledger_rev_blue.fountain` + `monsoon_ledger_rev_blue.expected.json`.
+
+**Not built yet (candidates for later):** calendar days off / weekends and travel days in the DOOD;
+multiple units; stripboard drag-and-drop; call sheets; Movie Magic / StudioBinder export; reading
+revision asterisks and coloured pages from PDFs as extra evidence; breakdown-sheet CSV/PDF export.
 
 **Known limitations to revisit (from Stage 1)**
 - Live Claude extraction accuracy has not been measured in the build environment (no API key

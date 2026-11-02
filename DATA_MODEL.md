@@ -191,6 +191,32 @@ under-18 → permits & chaperone, heights → rigging, water → water safety.
 Department items go through the same review queue (`entity_table = breakdown_occurrences`),
 reconciliation (`merge_item` proposals, undoable), reports and query engine (`elements` filters).
 
+## Stage 3 — revisions and scheduling (`models/revision.py`, `models/schedule.py`)
+
+| Table | Meaning |
+|---|---|
+| **script_revisions** | One comparison: previous draft → revised draft (same project), with summary stats. |
+| **scene_lineage** | Scene ↔ scene link per revision: `status` (`unchanged` · `changed` · `added` · `removed` · `omitted`), `method` (`number` · `content` · `manual`), `similarity`, `renumbered`, `heading_changed`, page-length delta, `needs_review` (doubtful matches → review queue), `carried_forward`. |
+| **scene_story_days** | When the scene happens **in the story**: `story_day`, `label` (D2, N2, DAWN 3, FB (1975)), `is_flashback`, `basis`. Inferred by rules (`extracted_by=rules`, always `needs_review`), editable; confirmed/edited values survive re-inference. |
+| **schedules** | A shooting schedule on one script version (`drop_after_days` for DOOD drop/pickup). |
+| **shooting_days** | When scenes are **filmed**: `day_number` (shooting order), optional `shoot_date`, label. |
+| **scheduled_scenes** | Scene on a shooting day, with `position` and optional `portion_eighths` for split scenes. |
+
+**Story day ≠ shooting day.** They live in different tables and never feed each other. The DOOD
+and one-liner are built from shooting days; story days are only shown alongside, labelled as story time.
+
+**Character ≠ casting requirement — in every Stage 3 output.** Revision reports list cast changes
+(characters) and casting-role changes separately. DOOD rows are casting requirements: an
+appearance's casting role, else the character's single actor role, else an *implicit* requirement
+(clearly marked until the AD creates the role) or *unassigned* (character has several roles).
+Voice-only appearances are voice requirements, not on-set days; group characters are background.
+New appearances are assigned to a casting role when the name used in the scene matches the role name.
+
+**Carry-forward.** Unchanged scenes get copies of the previous draft's facts (with review status,
+per fact type and per department), so only changed/added scenes are extracted. Revision diffs only
+compare what both drafts have extracted for that scene (from `extraction_runs.params.scene_ids`);
+anything else is reported as "not compared yet", never as added/removed.
+
 ## Review queue and audit log
 
 **review_items** — one queue for everything (`category` = `import` · `extraction` ·

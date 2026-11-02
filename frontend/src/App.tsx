@@ -3,12 +3,14 @@ import { api, Project } from "./api";
 import { DrillProvider } from "./components/Drill";
 import { DepartmentsPage } from "./features/departments/DepartmentsPage";
 import { ImportPage } from "./features/import/ImportPage";
+import { RevisionsPage } from "./features/revisions/RevisionsPage";
+import { SchedulePage } from "./features/schedule/SchedulePage";
 import { QueryPage } from "./features/query/QueryPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { ScenesPage } from "./features/scenes/ScenesPage";
 
-const TABS = [["import", "Import & coverage"], ["scenes", "Scenes"], ["review", "Review queue"], ["reports", "Reports"], ["departments", "Departments"], ["query", "Query"]];
+const TABS = [["import", "Import & coverage"], ["scenes", "Scenes"], ["review", "Review queue"], ["reports", "Reports"], ["departments", "Departments"], ["query", "Query"], ["revisions", "Revisions"], ["schedule", "Schedule"]];
 
 export function App() {
   const [tab, setTab] = useState(() => location.hash.slice(1) || "import");
@@ -56,6 +58,9 @@ export function App() {
         {sel && tab === "reports" && <ReportsPage versionId={sel.v} />}
         {sel && tab === "departments" && <DepartmentsPage versionId={sel.v} />}
         {sel && tab === "query" && <QueryPage versionId={sel.v} />}
+        {sel && tab === "revisions" && projects.find((p) => p.id === sel.p) &&
+          <RevisionsPage project={projects.find((p) => p.id === sel.p)!} versionId={sel.v} onChanged={refresh} />}
+        {sel && tab === "schedule" && <SchedulePage projectId={sel.p} versionId={sel.v} />}
       </main>
     </DrillProvider>
   );

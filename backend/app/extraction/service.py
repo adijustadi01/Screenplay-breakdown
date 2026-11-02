@@ -122,7 +122,8 @@ def run_extraction(
     run = ExtractionRun(script_version_id=version_id, kind=RunKind.SCENE_EXTRACTION,
                         model=getattr(extractor, "model", None) or extractor.name,
                         prompt_version=extractor.prompt_version,
-                        params={"extractor": extractor.name, "effort": getattr(extractor, "effort", None)})
+                        params={"extractor": extractor.name, "effort": getattr(extractor, "effort", None),
+                                "scene_ids": sorted(scene_ids) if scene_ids is not None else None})
     session.add(run)
     session.flush()
     ctx = _Ctx(session, version, run, cue_names, {}, {})
@@ -345,8 +346,14 @@ def apply_extraction(ctx: _Ctx, scene: Scene, els: list[ScriptElement], text: st
             extracted_by=ExtractorKind.PARSER,
         )
 
+    from ..models import CastingRole
     for char_id, f in planned.items():
         reasons, note = f.pop("reasons"), f.pop("note")
+        # A character with casting roles (ARJUN / YOUNG ARJUN): the name used in the scene picks the role.
+        roles = {normalize_name(r.name): r.id for r in s.scalars(select(CastingRole).where(
+            CastingRole.character_id == char_id))}
+        if roles and f.get("name_as_written"):
+            f["casting_role_id"] = roles.get(normalize_name(f["name_as_written"]))
         a = Appearance(scene_id=scene.id, character_id=char_id, source_scene_id=scene.id,
                        extraction_run_id=ctx.run.id, needs_review=bool(reasons),
                        review_reason=",".join(reasons) or None, **f)

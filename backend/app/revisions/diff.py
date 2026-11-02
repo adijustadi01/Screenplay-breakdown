@@ -57,9 +57,37 @@ def _text(session: Session, scene_id: int | None) -> list[str]:
                                             .order_by(ScriptElement.seq)) if e.element_type not in SKIP]
 
 
-def _has_facts(session: Session, scene_id: int) -> bool:
-    return bool(session.scalars(select(Appearance.id).where(Appearance.scene_id == scene_id)).first() or
-                session.scalars(select(BreakdownOccurrence.id).where(BreakdownOccurrence.scene_id == scene_id)).first())
+class Coverage:
+    """Which scenes each kind of extraction has actually been run on (from the run records)."""
+
+    def __init__(self, session: Session, version_id: int):
+        from ..models import ExtractionRun
+        from ..models.enums import RunKind, RunStatus
+        self.cast_all = False
+        self.cast: set[int] = set()
+        self.dept_all: set[str] = set()
+        self.dept: dict[str, set[int]] = defaultdict(set)
+        for r in session.scalars(select(ExtractionRun).where(ExtractionRun.script_version_id == version_id,
+                                                             ExtractionRun.status.in_([RunStatus.SUCCEEDED,
+                                                                                       RunStatus.PARTIAL]))):
+            sids = (r.params or {}).get("scene_ids")
+            if r.kind == RunKind.SCENE_EXTRACTION:
+                if sids is None:
+                    self.cast_all = True
+                else:
+                    self.cast |= set(sids)
+            elif r.kind == RunKind.DEPARTMENT_EXTRACTION:
+                for d in (r.params or {}).get("departments", []):
+                    if sids is None:
+                        self.dept_all.add(d)
+                    else:
+                        self.dept[d] |= set(sids)
+
+    def has_cast(self, sid: int) -> bool:
+        return self.cast_all or sid in self.cast
+
+    def has_dept(self, sid: int, d: str) -> bool:
+        return d in self.dept_all or sid in self.dept.get(d, set())
 
 
 def revision_report(session: Session, revision_id: int, include_text: bool = True) -> dict[str, Any]:
@@ -76,21 +104,36 @@ def revision_report(session: Session, revision_id: int, include_text: bool = Tru
     compared_depts = depts_old & depts_new
     not_compared = sorted((depts_old | depts_new) - compared_depts)
     cast_compared = bool(fo.appearances) and bool(fn.appearances)
+    cov_o, cov_n = Coverage(session, rev.from_version_id), Coverage(session, rev.to_version_id)
     scenes_out = []
     totals = defaultdict(int)
+    comparable_old_items: set = set()     # (dept, name) seen in an old scene that was really compared
     for r in rows:
         so = fo.scene_by_id.get(r.old_scene_id) if r.old_scene_id else None
         sn = fn.scene_by_id.get(r.new_scene_id) if r.new_scene_id else None
         totals[r.status.value] += 1
-        co, cn = (_cast(fo, r.old_scene_id), _cast(fn, r.new_scene_id)) if cast_compared else ({}, {})
+        # A scene is covered if an extraction ran on it, or (unchanged) its facts were carried from a covered scene.
+        def cov_cast(sid_n):
+            return cov_n.has_cast(sid_n) or (r.carried_forward and r.old_scene_id and cov_o.has_cast(r.old_scene_id))
+
+        def cov_dept(sid_n, d):
+            return cov_n.has_dept(sid_n, d) or (r.carried_forward and r.old_scene_id and cov_o.has_dept(r.old_scene_id, d))
+        scene_cast_ok = cast_compared and (r.new_scene_id is None or (sn and sn.omitted) or cov_cast(r.new_scene_id)) \
+            and (r.old_scene_id is None or cov_o.has_cast(r.old_scene_id))
+        co, cn = (_cast(fo, r.old_scene_id), _cast(fn, r.new_scene_id)) if scene_cast_ok else ({}, {})
+        scene_depts = {d for d in compared_depts
+                       if (r.new_scene_id is None or (sn and sn.omitted) or cov_dept(r.new_scene_id, d))
+                       and (r.old_scene_id is None or cov_o.has_dept(r.old_scene_id, d))}
+        depts_pending = sorted(compared_depts - scene_depts) if sn and not sn.omitted else []
         added = sorted(cname(fn, c) for c, p in cn.items() if p in on_set and co.get(c) not in on_set)
         removed = sorted(cname(fo, c) for c, p in co.items() if p in on_set and cn.get(c) not in on_set)
         presence_changed = sorted(f"{cname(fn, c)}: {co[c]} → {cn[c]}" for c in set(co) & set(cn)
                                   if co[c] != cn[c] and not (co[c] in on_set and cn[c] in on_set)
                                   and cname(fn, c) not in added and cname(fo, c) not in removed)
-        ro, rn = _roles(fo, r.old_scene_id), _roles(fn, r.new_scene_id)
-        io = {k: v for k, v in _items(fo, r.old_scene_id).items() if v.department in compared_depts}
-        inn = {k: v for k, v in _items(fn, r.new_scene_id).items() if v.department in compared_depts}
+        ro, rn = (_roles(fo, r.old_scene_id), _roles(fn, r.new_scene_id)) if scene_cast_ok else (set(), set())
+        io = {k: v for k, v in _items(fo, r.old_scene_id).items() if v.department in scene_depts}
+        comparable_old_items |= {(v.department, v.name) for v in io.values()}
+        inn = {k: v for k, v in _items(fn, r.new_scene_id).items() if v.department in scene_depts}
         dept = defaultdict(lambda: {"added": [], "removed": [], "quantity_changed": []})
         for iid, o in inn.items():
             if iid not in io:
@@ -121,8 +164,8 @@ def revision_report(session: Session, revision_id: int, include_text: bool = Tru
             "cast_added": added, "cast_removed": removed, "presence_changed": presence_changed,
             "casting_roles_added": sorted(rn - ro), "casting_roles_removed": sorted(ro - rn),
             "departments": {k: v for k, v in sorted(dept.items())},
-            "not_extracted": bool(sn and not sn.omitted and r.status in (LineageStatus.CHANGED, LineageStatus.ADDED)
-                                  and not _has_facts(session, sn.id)),
+            "not_extracted": bool(sn and not sn.omitted and fo.appearances and not cov_cast(sn.id)),
+            "departments_not_extracted": depts_pending,
         }
         if include_text and r.status in (LineageStatus.CHANGED,):
             entry["text_diff"] = list(difflib.unified_diff(_text(session, r.old_scene_id), _text(session, r.new_scene_id),
@@ -142,7 +185,7 @@ def revision_report(session: Session, revision_id: int, include_text: bool = Tru
     script_dept = defaultdict(lambda: {"new_to_script": [], "dropped_from_script": []})
     for d, n in sorted(new_items - old_items):
         script_dept[d]["new_to_script"].append(n)
-    for d, n in sorted(old_items - new_items):
+    for d, n in sorted((old_items - new_items) & comparable_old_items):
         script_dept[d]["dropped_from_script"].append(n)
 
     affected = []
@@ -172,6 +215,7 @@ def revision_report(session: Session, revision_id: int, include_text: bool = Tru
         "departments": {k: v for k, v in sorted(script_dept.items())},
         "needs_review": sum(1 for r in rows if r.needs_review),
         "not_extracted": sum(1 for s in scenes_out if s["not_extracted"]),
+        "departments_not_extracted": sum(1 for s in scenes_out if s["departments_not_extracted"]),
         "affected_schedule": affected,
         "scenes": scenes_out,
     }

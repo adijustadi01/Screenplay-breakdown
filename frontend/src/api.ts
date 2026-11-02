@@ -18,6 +18,8 @@ export const api = {
   get: <T,>(p: string) => req<T>(p),
   post: <T,>(p: string, body?: unknown) =>
     req<T>(p, { method: "POST", body: body instanceof FormData ? body : JSON.stringify(body ?? {}) }),
+  patch: <T,>(p: string, body?: unknown) => req<T>(p, { method: "PATCH", body: JSON.stringify(body ?? {}) }),
+  del: <T,>(p: string) => req<T>(p, { method: "DELETE" }),
 };
 
 export type Version = { id: number; label: string | null; file: string; format: string; status: string; pages: number };

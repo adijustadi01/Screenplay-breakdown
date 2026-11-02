@@ -273,7 +273,8 @@ def cmd_revise(a) -> int:
 def _format_revision(r) -> str:
     lines = [f"REVISION v{r['from_version_id']} -> v{r['to_version_id']}: {r['summary']}, "
              f"pages {r['pages_delta_eighths']:+d}/8, {r['needs_review']} match(es) to review, "
-             f"{r['not_extracted']} changed scene(s) not extracted yet"]
+             f"{r['not_extracted']} changed scene(s) not extracted yet, "
+             f"{r['departments_not_extracted']} without department extraction yet"]
     if not r["cast_compared"]:
         lines.append("  cast NOT compared: one of the drafts has no cast extraction")
     if r["departments_not_compared"]:
@@ -309,6 +310,10 @@ def _format_revision(r) -> str:
             bits.append(f"{d}: {', '.join(parts)}")
         if sc["needs_review"]:
             bits.append(f"[review: {sc['review_reason']}]")
+        if sc["not_extracted"]:
+            bits.append("[cast not extracted yet]")
+        if sc["departments_not_extracted"]:
+            bits.append(f"[not extracted yet: {', '.join(sc['departments_not_extracted'])}]")
         lines.append("  " + " | ".join(bits))
     return "\n".join(lines)
 
@@ -458,4 +463,7 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
+    import signal
+    if hasattr(signal, "SIGPIPE"):          # piping into `head` should end quietly, not with a traceback
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     raise SystemExit(main())

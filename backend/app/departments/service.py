@@ -109,7 +109,8 @@ def run_department_extraction(
     run = ExtractionRun(script_version_id=version_id, kind=RunKind.DEPARTMENT_EXTRACTION,
                         model=getattr(extractor, "model", None) or extractor.name,
                         prompt_version=extractor.prompt_version,
-                        params={"extractor": extractor.name, "departments": [s.key.value for s in specs]})
+                        params={"extractor": extractor.name, "departments": [s.key.value for s in specs],
+                                "scene_ids": sorted(scene_ids) if scene_ids is not None else None})
     session.add(run)
     session.flush()
     ctx = _Ctx(session, version, run, specs, _char_lookup(session, version.project_id), {},
