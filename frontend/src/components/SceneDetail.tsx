@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, eighths } from "../api";
+import { SceneSheet } from "./SceneSheet";
 import { ScriptText, ScriptEl } from "./ScriptText";
 
 type Appearance = {
@@ -80,6 +81,7 @@ export function SceneDetail({ sceneId }: { sceneId: number }) {
         <input type="text" placeholder="Add a missed character (name)" value={newName} onChange={(e) => setNewName(e.target.value)} />
         <button className="btn" onClick={add}>Add as present</button>
       </div>
+      <SceneSheet sceneId={sceneId} />
       <h3>Script text</h3>
       <ScriptText elements={scene.elements} highlight={hl ? [hl] : []} />
     </div>

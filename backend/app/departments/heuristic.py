@@ -126,8 +126,11 @@ class DepartmentHeuristicExtractor:
                         qtext = ((art.group(0) if art else "") + sent[s:e]).strip()
                     elif not _plural(noun):
                         qty = 1
+                    by_category = cat in spec.offline_category_names
+                    if by_category:
+                        qty, qtext = None, None          # events/effects are not counted units
                     owner = None
-                    pm = _POSSESSIVE_RE.search(before)
+                    pm = None if by_category else _POSSESSIVE_RE.search(before)
                     who = [c for c in self.cast if re.search(rf"\b{re.escape(c)}\b", sent, re.IGNORECASE)
                            or any(re.search(rf"\b{re.escape(t)}\b", sent, re.IGNORECASE)
                                   for t in c.split() if len(t) > 2 and self.cast_tokens.get(t) == c)]

@@ -84,7 +84,13 @@ Open http://localhost:8000. The workflow follows the tabs:
    passage. Confirm, edit, reject, accept or decline merges, and undo a merge if needed.
 4. **Reports**: scenes, characters, locations, who appears together, and day/night cross-tabs.
    Click any number to open the scenes behind it.
-5. **Query**: combine location, INT/EXT, time and character filters, and count by rows and columns.
+5. **Query**: combine location, INT/EXT, time, character and department filters, and count by rows and columns.
+
+**Stage 2 (departments):** on the Import tab, tick the departments and press **Run department
+extraction** (after cast extraction). The **Departments** tab has a report per department plus a
+**Continuity** timeline (costume and makeup states per character, scene by scene); every scene
+view shows a **breakdown sheet**; Query adds "department elements" filters, e.g. EXT + NIGHT +
+RAGHAV + motorcycle + rain.
 
 ### Command line (same engine)
 
@@ -108,6 +114,24 @@ python -m app.cli report 1 characters
 python -m app.cli accuracy 1 ../samples/monsoon_ledger.ground_truth.json
 ```
 
+Stage 2 commands:
+
+```bash
+python -m app.cli departments 1 --extractor claude --departments vehicles,props
+```
+
+```bash
+python -m app.cli dept-report 1 vehicles
+```
+
+```bash
+python -m app.cli dept-report 1 continuity
+```
+
+```bash
+python -m app.cli dept-accuracy 1 ../samples/highway_song.ground_truth.json
+```
+
 Other reports are `scenes`, `locations`, `combinations`, `crosstab:character_time`,
 `crosstab:location_time` and `crosstab:character_location_time`; add `--time effective` to
 group CONTINUOUS/LATER scenes by their inherited lighting, and `--json` for raw output.
@@ -120,7 +144,8 @@ Extraction settings: `--model` (default `claude-opus-5-5`), `--effort` (default 
 pytest
 ```
 
-`pytest tests/test_stage1_acceptance.py -v` runs one check per Stage 1 requirement.
+`pytest tests/test_stage1_acceptance.py -v` and `pytest tests/test_stage2_acceptance.py -v` run one
+check per Stage 1 / Stage 2 requirement.
 
 ### How extraction stays honest
 

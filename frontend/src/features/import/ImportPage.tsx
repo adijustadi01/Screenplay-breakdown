@@ -17,6 +17,28 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
   const [job, setJob] = useState<any>(null);
   const [extractor, setExtractor] = useState("claude");
   const [recon, setRecon] = useState<any>(null);
+  const [djob, setDjob] = useState<any>(null);
+  const [depts, setDepts] = useState<{ key: string; label: string }[]>([]);
+  const [chosen, setChosen] = useState<string[]>([]);
+  useEffect(() => { api.get<any[]>("/api/departments").then((d) => { setDepts(d); setChosen(d.map((x) => x.key)); }); }, []);
+  useEffect(() => {
+    if (!versionId) return;
+    api.get<any>(`/api/script-versions/${versionId}/departments/extract`).then((r) => setDjob(r.job));
+  }, [versionId]);
+  useEffect(() => {
+    if (!versionId || djob?.status !== "running") return;
+    const t = setInterval(async () => {
+      const r = await api.get<any>(`/api/script-versions/${versionId}/departments/extract`);
+      setDjob(r.job);
+      if (r.job?.status !== "running") onChanged();
+    }, 1000);
+    return () => clearInterval(t);
+  }, [djob?.status, versionId, onChanged]);
+  const extractDepts = async () => {
+    setErr("");
+    try { setDjob(await api.post(`/api/script-versions/${versionId}/departments/extract`, { extractor, departments: chosen, workers: 4 })); }
+    catch (e) { setErr(String(e)); }
+  };
 
   useEffect(() => { if (!projectId && projects[0]) setProjectId(projects[0].id); }, [projects, projectId]);
   useEffect(() => {
@@ -101,7 +123,15 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
                   ? Object.entries(recon.proposals_created).map(([k, v]) => `${v} ${k}`).join(", ") + " → review queue"
                   : "no new proposals"}</span>}
               </div>
-              <p className="small muted">Every extracted fact and every proposed merge goes to the Review queue. Nothing is merged until you accept it.</p>
+              <h3>Stage 2 · Departmental breakdown</h3>
+              <div className="row small">{depts.map((d) => (
+                <label key={d.key}><input type="checkbox" checked={chosen.includes(d.key)}
+                  onChange={(e) => setChosen(e.target.checked ? [...chosen, d.key] : chosen.filter((x) => x !== d.key))} /> {d.label}</label>))}</div>
+              <div className="row" style={{ marginTop: 6 }}>
+                <button className="btn primary" disabled={djob?.status === "running" || !chosen.length} onClick={extractDepts}>Run department extraction</button>
+                {djob && <span className={djob.status === "failed" ? "error small" : "small"}>Departments: {djob.status}{djob.total ? ` — ${djob.done}/${djob.total} scenes` : ""}{djob.error ? ` — ${djob.error}` : ""}</span>}
+              </div>
+              <p className="small muted">Run cast extraction first (department items are linked to the cast). Every extracted fact, inferred requirement and proposed merge goes to the Review queue. Nothing is merged until you accept it.</p>
             </>
           )}
         </section>

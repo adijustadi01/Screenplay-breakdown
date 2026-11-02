@@ -162,6 +162,35 @@ to the parent.
 
 **shooting_venues** — real-world places. Exists now so Stage 3 needs no restructuring.
 
+## Stage 2 — departmental breakdowns (`backend/app/models/breakdown.py`)
+
+One generic model serves all nine departments; each department is a spec module in
+`backend/app/departments/` (categories, character roles, detail fields, extraction
+instructions, offline rules, department review rules, report extras).
+
+| Table | Meaning |
+|---|---|
+| **breakdown_items** | The thing's *identity* across the script: `department`, `name` (normalised, unique per department), `category` (e.g. `motorcycle`, `weapon`, `uniform`), owner `character_id`, `attributes`, soft-merge fields, provenance. |
+| **breakdown_occurrences** | The item *in one scene*: `QuantityMixin` (stated headcount; NULL = unknown, flagged), `description`, department-specific `details` (validated against the spec: e.g. vehicles `moving/action`, costumes `state`, effects `practical`/`vfx_candidate`, songs `playback`), `is_inferred` (not stated — always reviewed), provenance. Unique per (scene, item). |
+| **occurrence_characters** | Who is involved and how: `role` from the department's list (driver, passenger, user, wearer, performer, singer, handler...). |
+
+**Identity vs quantity.** One recurring jeep in 10 scenes = one item, 10 occurrences of
+quantity 1. Three police jeeps together = one item, one occurrence of quantity 3. Reports
+give scenes per item, max units in one scene, and the department's peak units on set at once.
+
+**Departments:** `vehicles`, `props`, `costumes`, `makeup_hair`, `background`, `animals`,
+`action_effects`, `sound_music`, `production`.
+
+**Code-derived items** (certain, `extracted_by=parser`): voiceovers from (V.O.) cues, songs from
+`SONG:` lines. **Rule-derived production requirements** (`extracted_by=rules`, `is_inferred=true`,
+always "INFERRED — review"): rain → rain towers, moving vehicle with actors → camera rig, large or
+unknown crowd → crowd management, animals → handler/welfare, weapons/gunfire → armourer, stunts →
+stunt coordinator, fire/explosion → SFX & fire safety, playback song → choreographer & playback,
+under-18 → permits & chaperone, heights → rigging, water → water safety.
+
+Department items go through the same review queue (`entity_table = breakdown_occurrences`),
+reconciliation (`merge_item` proposals, undoable), reports and query engine (`elements` filters).
+
 ## Review queue and audit log
 
 **review_items** — one queue for everything (`category` = `import` · `extraction` ·

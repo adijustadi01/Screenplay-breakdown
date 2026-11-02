@@ -100,6 +100,9 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
             <div className="row"><span className={`badge ${detail.severity}`}>{detail.severity}</span><b>{detail.reason}</b>
               <span className="muted small">{detail.category} · {detail.status}{detail.resolution ? ` (${detail.resolution})` : ""}</span></div>
             <p>{detail.message}</p>
+            {detail.entity && detail.entity_table === "breakdown_occurrences" && <p className="small muted">
+              Item: <b>{detail.entity.item_name}</b> ({detail.entity.department}, {detail.entity.item_category}) — quantity {detail.entity.quantity_max ?? "unknown"}
+              {detail.entity.is_inferred && <b> · INFERRED</b>}; extracted by {detail.entity.extracted_by}; evidence “{detail.entity.source_excerpt}”</p>}
             {detail.entity && detail.entity_table === "appearances" && <p className="small muted">
               Fact: <b>{detail.entity.character_name}</b> — {detail.entity.presence}, {detail.entity.speaking}; extracted by {detail.entity.extracted_by}; evidence “{detail.entity.source_excerpt}”</p>}
             {err && <p className="error">{err}</p>}
@@ -111,7 +114,7 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
             ) : (
               <>
                 {detail.editable_fields.length > 0 && <div className="row small">
-                  {detail.editable_fields.filter((f: string) => CHOICES[f] || ["quantity_min", "quantity_max", "scene_number", "canonical_name", "name"].includes(f)).map((f: string) => (
+                  {detail.editable_fields.filter((f: string) => CHOICES[f] || ["quantity_min", "quantity_max", "quantity_raw", "description", "scene_number", "canonical_name", "name"].includes(f)).map((f: string) => (
                     <label key={f}>{f}{" "}
                       {CHOICES[f] ? (
                         <select value={changes[f] ?? detail.entity?.[f] ?? ""} onChange={(e) => setChanges({ ...changes, [f]: e.target.value })}>
@@ -127,7 +130,7 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
                   <input type="text" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} style={{ flex: 1 }} />
                   <button className="btn primary" onClick={() => act("confirm")}>Confirm</button>
                   <button className="btn" disabled={Object.keys(changes).length === 0} onClick={() => act("edit")}>Save edit</button>
-                  {["appearances", "scene_locations", "characters", "locations", "scenes"].includes(detail.entity_table) &&
+                  {["appearances", "scene_locations", "characters", "locations", "scenes", "breakdown_occurrences", "breakdown_items"].includes(detail.entity_table) &&
                     <button className="btn danger" onClick={() => act("reject")}>Reject</button>}
                   <button className="btn" onClick={() => act("dismiss")}>Dismiss</button>
                 </div>

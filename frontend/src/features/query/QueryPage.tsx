@@ -5,13 +5,24 @@ import { useDrill } from "../../components/Drill";
 import { Matrix } from "../reports/ReportsPage";
 
 type Opts = { characters: { id: number; name: string }[]; locations: { id: number; label: string; depth: number }[];
-  int_ext: string[]; times_as_written: string[]; times_effective: string[] };
+  int_ext: string[]; times_as_written: string[]; times_effective: string[];
+  elements: Record<string, { categories: string[]; items: { id: number; name: string }[] }> };
+type El = { department?: string; category?: string; item_ids?: number[]; text?: string; character_id?: number; role?: string };
+const elLabel = (e: El, opts: Opts) => [
+  e.department?.replace("_", " "),
+  e.category,
+  e.item_ids?.map((i) => opts.elements[e.department ?? ""]?.items.find((x) => x.id === i)?.name).join(" / "),
+  e.text && `“${e.text}”`,
+  e.character_id && `with ${opts.characters.find((c) => c.id === e.character_id)?.name}${e.role ? ` as ${e.role}` : ""}`,
+].filter(Boolean).join(" · ");
 
 /** Composable structured filters across the whole breakdown. */
 export function QueryPage({ versionId }: { versionId: number }) {
   const [opts, setOpts] = useState<Opts | null>(null);
   const [q, setQ] = useState<any>({ location_ids: [], int_ext: [], times: [], time_mode: "as_written", character_ids: [],
-    character_match: "all", include_off_screen: true, include_voice_only: false, rows: "none", columns: "none" });
+    character_match: "all", include_off_screen: true, include_voice_only: false, rows: "none", columns: "none",
+    elements: [], rows_department: null });
+  const [draft, setDraft] = useState<El>({});
   const [res, setRes] = useState<any>(null);
   const drill = useDrill();
   useEffect(() => { api.get<Opts>(`/api/script-versions/${versionId}/query/options`).then(setOpts); setRes(null); }, [versionId]);
@@ -52,6 +63,30 @@ export function QueryPage({ versionId }: { versionId: number }) {
             </div>
           </div>
           <div>
+            <h3>Department elements (each must be in the scene)</h3>
+            <div className="row small">
+              <select value={draft.department ?? ""} onChange={(e) => setDraft({ department: e.target.value || undefined })}>
+                <option value="">department…</option>
+                {Object.keys(opts.elements).map((d) => <option key={d} value={d}>{d.replace("_", " ")}</option>)}
+              </select>
+              {draft.department && <>
+                <select value={draft.category ?? ""} onChange={(e) => setDraft({ ...draft, category: e.target.value || undefined })}>
+                  <option value="">any category</option>
+                  {opts.elements[draft.department].categories.map((c) => <option key={c}>{c}</option>)}
+                </select>
+                <select value={draft.item_ids?.[0] ?? ""} onChange={(e) => setDraft({ ...draft, item_ids: e.target.value ? [Number(e.target.value)] : undefined })}>
+                  <option value="">any item</option>
+                  {opts.elements[draft.department].items.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </>}
+              <input type="text" size={10} placeholder="text, e.g. rain" value={draft.text ?? ""} onChange={(e) => setDraft({ ...draft, text: e.target.value || undefined })} />
+              <select value={draft.character_id ?? ""} onChange={(e) => setDraft({ ...draft, character_id: e.target.value ? Number(e.target.value) : undefined })}>
+                <option value="">involving anyone</option>
+                {opts.characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button className="btn" disabled={!draft.department && !draft.text} onClick={() => { setQ({ ...q, elements: [...q.elements, draft] }); setDraft({}); }}>+ add</button>
+            </div>
+            <div>{q.elements.map((e: El, i: number) => <span key={i} className="chip">{elLabel(e, opts)}<button onClick={() => setQ({ ...q, elements: q.elements.filter((_: El, j: number) => j !== i) })}>×</button></span>)}</div>
             <h3>INT / EXT</h3>
             <div className="row small">{opts.int_ext.map((v) => <label key={v}><input type="checkbox" checked={q.int_ext.includes(v)} onChange={() => toggle("int_ext", v)} /> {v}</label>)}</div>
             <h3>Time of day</h3>
@@ -62,7 +97,9 @@ export function QueryPage({ versionId }: { versionId: number }) {
             <h3>Count by</h3>
             <div className="row small">
               rows <select value={q.rows} onChange={(e) => setQ({ ...q, rows: e.target.value })}>
-                {["none", "character", "location", "story_location", "int_ext", "time"].map((x) => <option key={x}>{x}</option>)}</select>
+                {["none", "character", "location", "story_location", "int_ext", "time", "item"].map((x) => <option key={x}>{x}</option>)}</select>
+              {q.rows === "item" && <select value={q.rows_department ?? ""} onChange={(e) => setQ({ ...q, rows_department: e.target.value || null })}>
+                <option value="">all departments</option>{Object.keys(opts.elements).map((d) => <option key={d} value={d}>{d}</option>)}</select>}
               columns <select value={q.columns} onChange={(e) => setQ({ ...q, columns: e.target.value })}>
                 {["none", "time", "int_ext"].map((x) => <option key={x}>{x}</option>)}</select>
             </div>

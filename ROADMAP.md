@@ -44,32 +44,32 @@ drills down to the scenes behind it.
 
 ---
 
-## Stage 2 — Departmental breakdowns  *(not started — do not build yet)*
+## Stage 2 — Departmental breakdowns  *(complete — awaiting your test on a real script)*
 
-Each department becomes an extracted-fact table using the same `ProvenanceMixin`
-(source passage, confidence, needs_review, review_status) and, where counts matter,
-`QuantityMixin` (min/max/raw — unknown stays unknown). Each item links to scene(s) and,
-where relevant, to a character (whose costume? whose prop?). All new tables plug into
-the existing generic review queue (`review_items.entity_table/entity_id`).
+One generic model (`breakdown_items` identity / `breakdown_occurrences` per scene /
+`occurrence_characters` roles) and one module per department. Same provenance, confidence,
+needs_review, review queue, reconciliation, reports and query engine as Stage 1.
 
-| Department | What to extract | Notes |
-|---|---|---|
-| Vehicles | picture vehicles, who drives, moving/static, process/tow | "INT. CAR - MOVING" implies a vehicle |
-| Props | hand props, hero props, consumables, repeats | continuity: same prop across scenes |
-| Set dressing | dressing called for in action | distinct from props |
-| Costumes | per character per scene, changes, damage/blood continuity | costume change numbering (C1, C2…) |
-| Makeup / hair | wounds, ageing, prosthetics, wigs, special MU | ties to casting role (young/old) |
-| Background / extras | crowd type, headcount (often unknown → flagged), featured extras | "a huge crowd" = unknown, never guessed |
-| Animals / wranglers | species, count, action required | |
-| Stunts / action | stunt type, performers, doubles needed | links to `casting_roles` STUNT_DOUBLE |
-| VFX / SFX | VFX shots, practical effects (rain, fire, smoke, squibs) | |
-| Songs / music / sound | on-screen songs, playback, lip-sync, licensed music, special sound | Indian features: song sequences as their own unit |
-| Production requirements | special equipment (crane, drone, underwater), permits, weather, child labour rules, night-shoot flags | |
+| Department | Module | Highlights | Status |
+|---|---|---|---|
+| Framework | `departments/base.py`, `service.py`, `reports.py` | spec contract, shared extraction + verification, peak units, continuity, scene sheet, query `elements` | ✅ |
+| Vehicles | `vehicles.py` | identity vs quantity, drivers/passengers/owner, moving/action | ✅ |
+| Props | `props.py` | users/holders, weapon & consumable flags, hero props | ✅ |
+| Costumes | `costumes.py` | per character, changes, uniform/period/dance, wet/torn/bloodied → multiples | ✅ |
+| Makeup & hair | `makeup_hair.py` | injury/ageing/prosthetic/disguise/hairstyle, fresh → bandaged continuity, gap checks | ✅ |
+| Background | `background.py` | stated headcounts only, unknown flagged, large-crowd/featured flags | ✅ |
+| Animals | `animals.py` | species, trained behaviour, mandatory handler assessment | ✅ |
+| Action & effects | `action_effects.py` | separate practical / VFX-candidate flags, safety & stunt-double review | ✅ |
+| Songs, dance & sound | `sound_music.py` | songs (playback/lip-sync/live), dancers, instruments, scripted sounds; V.O. + SONG: derived in code | ✅ |
+| Production requirements | `production.py` | stated needs + rule-derived needs, always "INFERRED — review" | ✅ |
+| UI | Departments tab, scene breakdown sheet, Import controls, Query element filters | | ✅ |
 
-Stage 2 also adds: department reports, per-department review filters, export to CSV/PDF
-breakdown sheets (one sheet per scene, colour-coded by department).
+**Stage 2 acceptance:** `pytest tests/test_stage2_acceptance.py -v`.
+**Sample:** `samples/highway_song.fountain` + `highway_song.ground_truth.json` (70+ department items);
+score with `python -m app.cli dept-accuracy <version> ../samples/highway_song.ground_truth.json`.
 
----
+**Still open (Stage 2):** live Claude accuracy on the department sample and on a real script;
+export of breakdown sheets to CSV/PDF (colour-coded per department) — not built yet.
 
 ## Stage 3 — Revision tracking + scheduling reports  *(not started — do not build yet)*
 

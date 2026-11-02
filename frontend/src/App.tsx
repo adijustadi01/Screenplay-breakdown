@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, Project } from "./api";
 import { DrillProvider } from "./components/Drill";
+import { DepartmentsPage } from "./features/departments/DepartmentsPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { QueryPage } from "./features/query/QueryPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { ScenesPage } from "./features/scenes/ScenesPage";
 
-const TABS = [["import", "Import & coverage"], ["scenes", "Scenes"], ["review", "Review queue"], ["reports", "Reports"], ["query", "Query"]];
+const TABS = [["import", "Import & coverage"], ["scenes", "Scenes"], ["review", "Review queue"], ["reports", "Reports"], ["departments", "Departments"], ["query", "Query"]];
 
 export function App() {
   const [tab, setTab] = useState(() => location.hash.slice(1) || "import");
@@ -53,6 +54,7 @@ export function App() {
         {sel && tab === "scenes" && <ScenesPage versionId={sel.v} />}
         {sel && tab === "review" && <ReviewPage projectId={sel.p} versionId={sel.v} onChanged={refresh} />}
         {sel && tab === "reports" && <ReportsPage versionId={sel.v} />}
+        {sel && tab === "departments" && <DepartmentsPage versionId={sel.v} />}
         {sel && tab === "query" && <QueryPage versionId={sel.v} />}
       </main>
     </DrillProvider>
