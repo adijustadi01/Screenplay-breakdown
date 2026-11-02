@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db.base import utcnow
@@ -82,6 +83,9 @@ def import_script(
     fmt = detect_format(path)
     sha = hashlib.sha256(path.read_bytes()).hexdigest()
 
+    # The newest import becomes the current draft; earlier drafts stay for revision diffs.
+    for older in session.scalars(select(ScriptVersion).where(ScriptVersion.project_id == project_id)):
+        older.is_current = False
     version = ScriptVersion(
         project_id=project_id, label=label, source_filename=original_filename or path.name,
         source_format=fmt, source_sha256=sha, status=ScriptVersionStatus.IMPORTING,

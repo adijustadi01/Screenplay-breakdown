@@ -241,6 +241,139 @@ def cmd_dept_accuracy(a) -> int:
     return 0
 
 
+def cmd_revise(a) -> int:
+    from .revisions.diff import revision_report
+    from .revisions.service import revise
+    s = _session(a.db)
+    ex = dex = None
+    if a.extractor != "none":
+        if a.extractor == "claude":
+            from .extraction.claude_extractor import ClaudeExtractor
+            ex = ClaudeExtractor()
+        else:
+            from .extraction.heuristic_extractor import HeuristicExtractor
+            ex = HeuristicExtractor()
+        if a.departments:
+            from .departments import registry
+            specs = registry.get(None if a.departments == "all" else a.departments.split(","))
+            if a.extractor == "claude":
+                from .departments.claude_extractor import DepartmentClaudeExtractor
+                dex = DepartmentClaudeExtractor(specs)
+            else:
+                from .departments.heuristic import DepartmentHeuristicExtractor
+                dex = DepartmentHeuristicExtractor(specs)
+    out = revise(s, a.old, a.new, ex, dex, workers=a.workers)
+    s.commit()
+    print(f"Revision {out['revision_id']}: carried forward {out['carried_forward']}; "
+          f"extracted {out['extracted_scenes']} changed/added scene(s)\n")
+    print(_format_revision(revision_report(s, out["revision_id"], include_text=False)))
+    return 0
+
+
+def _format_revision(r) -> str:
+    lines = [f"REVISION v{r['from_version_id']} -> v{r['to_version_id']}: {r['summary']}, "
+             f"pages {r['pages_delta_eighths']:+d}/8, {r['needs_review']} match(es) to review, "
+             f"{r['not_extracted']} changed scene(s) not extracted yet"]
+    if not r["cast_compared"]:
+        lines.append("  cast NOT compared: one of the drafts has no cast extraction")
+    if r["departments_not_compared"]:
+        lines.append(f"  departments NOT compared (only one draft has them): {', '.join(r['departments_not_compared'])}")
+    for k, label in (("characters_new_to_script", "characters new to script"),
+                     ("characters_dropped_from_script", "characters dropped from script"),
+                     ("casting_roles_new", "casting roles new"), ("casting_roles_dropped", "casting roles dropped")):
+        if r[k]:
+            lines.append(f"  {label}: {', '.join(r[k])}")
+    for d, v in r["departments"].items():
+        lines.append(f"  {d}: +{', '.join(v['new_to_script']) or '-'}  -{', '.join(v['dropped_from_script']) or '-'}")
+    for x in r["affected_schedule"]:
+        lines.append(f"  ! scheduled scene {x['scene']} ({x['status']}) on shooting day {x['shooting_day']} of {x['schedule']}")
+    for sc in r["scenes"]:
+        if sc["status"] == "unchanged":
+            continue
+        ref = sc["new"] or sc["old"]
+        bits = [f"{sc['status'].upper():9} sc {ref['number'] or '#' + str(ref['seq']):>4}"]
+        if sc["renumbered"]:
+            bits.append(f"(was {sc['old']['number']})")
+        if sc["heading_changes"]:
+            bits.append("; ".join(sc["heading_changes"]))
+        if sc["location"]:
+            bits.append(f"location {sc['location']['from']} -> {sc['location']['to']}")
+        if sc["cast_added"]:
+            bits.append("cast +" + ", ".join(sc["cast_added"]))
+        if sc["cast_removed"]:
+            bits.append("cast -" + ", ".join(sc["cast_removed"]))
+        if sc["presence_changed"]:
+            bits.append("; ".join(sc["presence_changed"]))
+        for d, v in sc["departments"].items():
+            parts = [f"+{x}" for x in v["added"]] + [f"-{x}" for x in v["removed"]] + v["quantity_changed"]
+            bits.append(f"{d}: {', '.join(parts)}")
+        if sc["needs_review"]:
+            bits.append(f"[review: {sc['review_reason']}]")
+        lines.append("  " + " | ".join(bits))
+    return "\n".join(lines)
+
+
+def cmd_revision_report(a) -> int:
+    from .revisions.diff import revision_report
+    s = _session(a.db)
+    r = revision_report(s, a.revision)
+    print(json.dumps(r, indent=2) if a.json else _format_revision(r))
+    return 0
+
+
+def cmd_story_days(a) -> int:
+    from .scheduling.story_days import infer_story_days
+    s = _session(a.db)
+    print(infer_story_days(s, a.version))
+    s.commit()
+    return 0
+
+
+def cmd_schedule(a) -> int:
+    from .scheduling import service as sv
+    from .scheduling.reports import schedule_report
+    s = _session(a.db)
+    if a.create:
+        sch = sv.create_schedule(s, a.version, a.create, a.drop_after)
+        if a.autofill:
+            sv.autofill(s, sch.id, a.autofill)
+        s.commit()
+        print(f"Schedule {sch.id} created")
+        sid = sch.id
+    else:
+        sid = a.schedule
+    r = schedule_report(s, sid)
+    sv_ = r["story_vs_shooting"]
+    print(f"SCHEDULE {r['schedule']['name']}: {sv_['shooting_days']} SHOOTING day(s) | {sv_['story_days']} STORY day(s)"
+          f"{' (inferred)' if sv_['story_days_inferred'] else ''}\n  {sv_['explanation']}")
+    for d in r["oneliner"]:
+        print(f"\n  SHOOT DAY {d['day_number']}{' ' + d['date'] if d['date'] else ''} — "
+              f"{d['eighths'] // 8} {d['eighths'] % 8}/8 pp — story: {', '.join(d['story_days']) or '?'}  {d['label'] or ''}")
+        for e in d["scenes"]:
+            print(f"     sc {e['scene']:>4} {e['int_ext']:7} {e['time']:12} story {e['story_day'] or '?':8} "
+                  f"{e['location'][:32]:32} cast {','.join(map(str, e['cast_ids']))}")
+    if r["unscheduled"]:
+        print(f"\n  UNSCHEDULED: {', '.join(x['scene'] for x in r['unscheduled'])}")
+    days = r["dood"]["days"]
+    print("\n  DAY OUT OF DAYS (casting requirements x SHOOTING days)")
+    print("  " + f"{'#':>3} {'REQUIREMENT':26} {'CHARACTER':16}" + "".join(f"{d['day_number']:>4}" for d in days)
+          + "  WORK HOLD DROP")
+    for c in r["dood"]["cast"]:
+        req = c["requirement"] + (" *" if c["implicit"] else "")
+        print("  " + f"{c['cast_id']:>3} {req[:26]:26} {c['character'][:16]:16}"
+              + "".join(f"{c['codes'][d['day_number']]:>4}" for d in days)
+              + f"  {c['work_days']:>4} {c['hold_days']:>4} {c['drop_days']:>4}")
+    if r["dood"]["implicit_requirements"]:
+        print("  * implicit: no casting role yet for this character (create roles to firm these up)")
+    if r["dood"]["voice"]:
+        print("  voice (not on set): " + ", ".join(v["requirement"] for v in r["dood"]["voice"]))
+    if r["dood"]["background_groups"]:
+        print("  background groups (not cast): " + ", ".join(g["requirement"] for g in r["dood"]["background_groups"]))
+    for w in r["warnings"]:
+        print(f"  ! {w}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli", description="Screenplay breakdown")
     ap.add_argument("--db", help="database URL (default sqlite:///./breakdown.db or $DATABASE_URL)")
@@ -298,6 +431,28 @@ def main(argv=None) -> int:
     p.add_argument("truth")
     p.add_argument("--departments")
     p.set_defaults(fn=cmd_dept_accuracy)
+    p = sub.add_parser("revise", help="Stage 3: compare a revised draft with the previous one")
+    p.add_argument("old", type=int, help="previous script version id")
+    p.add_argument("new", type=int, help="revised script version id (import it first)")
+    p.add_argument("--extractor", choices=["claude", "heuristic", "none"], default="none",
+                   help="extract changed/added scenes (default: none)")
+    p.add_argument("--departments", help="also run department extraction: 'all' or a comma list")
+    p.add_argument("--workers", type=int, default=4)
+    p.set_defaults(fn=cmd_revise)
+    p = sub.add_parser("revision-report", help="print a stored revision report")
+    p.add_argument("revision", type=int)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_revision_report)
+    p = sub.add_parser("story-days", help="infer STORY days (story time, not shooting days)")
+    p.add_argument("version", type=int)
+    p.set_defaults(fn=cmd_story_days)
+    p = sub.add_parser("schedule", help="create/print a shooting schedule, one-liner and DOOD")
+    p.add_argument("version", type=int)
+    p.add_argument("--create", metavar="NAME")
+    p.add_argument("--autofill", type=int, metavar="EIGHTHS", help="suggest days of at most N eighths")
+    p.add_argument("--drop-after", type=int, default=10)
+    p.add_argument("--schedule", type=int, help="existing schedule id to print")
+    p.set_defaults(fn=cmd_schedule)
     a = ap.parse_args(argv)
     return a.fn(a)
 

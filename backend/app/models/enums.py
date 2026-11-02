@@ -180,6 +180,7 @@ class ReviewCategory(str, enum.Enum):
     IMPORT = "import"              # coverage, OCR, headings, numbering
     EXTRACTION = "extraction"      # low-confidence / uncertain extracted facts
     RECONCILIATION = "reconciliation"  # proposed merges / links
+    REVISION = "revision"          # uncertain scene matches between drafts
 
 
 class Severity(str, enum.Enum):
@@ -214,3 +215,32 @@ class Department(str, enum.Enum):
     ACTION_EFFECTS = "action_effects"
     SOUND_MUSIC = "sound_music"
     PRODUCTION = "production"
+
+
+class LineageStatus(str, enum.Enum):
+    """How a scene in the new draft relates to the previous draft."""
+
+    UNCHANGED = "unchanged"        # same text (normalised)
+    CHANGED = "changed"            # matched, text differs
+    ADDED = "added"                # new scene, no counterpart
+    REMOVED = "removed"            # old scene with no counterpart (cut)
+    OMITTED = "omitted"            # old scene now marked OMITTED in the new draft
+
+
+class MatchMethod(str, enum.Enum):
+    NUMBER = "number"              # same preserved scene number, content confirms
+    CONTENT = "content"            # text similarity (renumbered or unnumbered)
+    MANUAL = "manual"              # set by the AD
+    NONE = "none"                  # added/removed
+
+
+class DoodCode(str, enum.Enum):
+    """Day-out-of-days codes (computed in code from SHOOTING days, never story days)."""
+
+    START_WORK = "SW"
+    WORK = "W"
+    WORK_FINISH = "WF"
+    START_WORK_FINISH = "SWF"
+    HOLD = "H"
+    WORK_DROP = "WD"               # works, then dropped for a long gap
+    PICKUP_WORK = "PW"             # picked up again after a drop

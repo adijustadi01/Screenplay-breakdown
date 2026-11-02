@@ -1,0 +1,66 @@
+{
+ "_about": "Expected revision diff monsoon_ledger.fountain -> monsoon_ledger_rev_blue.fountain (keys = scene numbers in the NEW draft; 'POLICE STATION' = the unnumbered scene).",
+ "scenes": {
+  "1": {
+   "status": "unchanged"
+  },
+  "2": {
+   "status": "changed",
+   "cast_removed": [
+    "MRS. D'SOUZA"
+   ]
+  },
+  "3": {
+   "status": "changed"
+  },
+  "4": {
+   "status": "unchanged"
+  },
+  "5": {
+   "status": "changed",
+   "cast_added": [
+    "INSPECTOR SHARMA"
+   ]
+  },
+  "6": {
+   "status": "changed",
+   "heading_changed": true,
+   "location_from": "ARJUN'S CAR",
+   "location_to": "KAALI-PEELI TAXI"
+  },
+  "7": {
+   "status": "omitted"
+  },
+  "8": {
+   "status": "unchanged"
+  },
+  "8A": {
+   "status": "unchanged"
+  },
+  "9": {
+   "status": "unchanged"
+  },
+  "9A": {
+   "status": "added",
+   "cast_added": [
+    "ARJUN",
+    "BANK MANAGER"
+   ]
+  },
+  "POLICE STATION": {
+   "status": "unchanged"
+  },
+  "11": {
+   "status": "unchanged"
+  },
+  "12": {
+   "status": "unchanged"
+  },
+  "13": {
+   "status": "unchanged"
+  },
+  "14": {
+   "status": "unchanged"
+  }
+ }
+}

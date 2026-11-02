@@ -295,6 +295,7 @@ class DeptExtractIn(BaseModel):
     extractor: Literal["claude", "heuristic"] = "claude"
     departments: list[str] | None = None
     workers: int = 4
+    scene_ids: list[int] | None = None
 
 
 @router.get("/departments")
@@ -330,6 +331,7 @@ def start_department_extraction(version_id: int, body: DeptExtractIn, s: Session
         with factory() as session:
             try:
                 run = run_department_extraction(session, version_id, ex, workers=body.workers,
+                                                scene_ids=body.scene_ids,
                                                 progress=lambda d, t: JOBS[key].update(done=d, total=t))
                 session.commit()
                 JOBS[key].update(status="finished", run_id=run.id, run_status=run.status.value)

@@ -15,6 +15,8 @@ from ..models import (
     Appearance,
     BreakdownItem,
     BreakdownOccurrence,
+    SceneLineage,
+    SceneStoryDay,
     Character,
     Location,
     Page,
@@ -43,7 +45,8 @@ from ..models.enums import (
 from ..reconciliation.apply import ProposalError, apply_proposal, undo
 from .audit import log_event, snapshot
 
-MODELS = {"breakdown_occurrences": BreakdownOccurrence, "breakdown_items": BreakdownItem,
+MODELS = {"scene_story_days": SceneStoryDay, "scene_lineage": SceneLineage,
+          "breakdown_occurrences": BreakdownOccurrence, "breakdown_items": BreakdownItem,
           "appearances": Appearance, "scenes": Scene, "scene_locations": SceneLocation,
           "characters": Character, "locations": Location, "script_elements": ScriptElement,
           "pages": Page, "script_versions": ScriptVersion}
@@ -62,9 +65,10 @@ EDITABLE: dict[str, dict[str, Any]] = {
     "breakdown_occurrences": {"quantity_min": int, "quantity_max": int, "quantity_raw": str, "description": str,
                               "is_inferred": bool, "details": dict, "item_id": int},
     "breakdown_items": {"name": str, "category": str, "description": str, "character_id": int, "attributes": dict},
+    "scene_story_days": {"story_day": int, "label": str, "is_flashback": bool},
 }
 HAS_PROVENANCE = {"appearances", "scenes", "scene_locations", "characters", "locations",
-                  "breakdown_occurrences", "breakdown_items"}
+                  "breakdown_occurrences", "breakdown_items", "scene_story_days"}
 SEVERITY_ORDER = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.INFO: 2}
 
 
@@ -88,7 +92,10 @@ def _coerce(table: str, field: str, value):
 def _project_of(session: Session, table: str, obj) -> int:
     if hasattr(obj, "project_id"):
         return obj.project_id
-    if table in ("appearances", "scene_locations", "breakdown_occurrences"):
+    if table == "scene_lineage":
+        from ..models import ScriptRevision
+        return session.get(ScriptRevision, obj.revision_id).project_id
+    if table in ("appearances", "scene_locations", "breakdown_occurrences", "scene_story_days"):
         obj = session.get(Scene, obj.scene_id)
         table = "scenes"
     if table in ("scenes", "pages", "script_elements"):

@@ -10,13 +10,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import breakdown, scripts
+from .api import breakdown, scripts, stage3
 
 app = FastAPI(title="Screenplay Breakdown", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"],
                    allow_headers=["*"])
 app.include_router(scripts.router)
 app.include_router(breakdown.router)
+app.include_router(stage3.router)
 
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if DIST.exists():
