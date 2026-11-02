@@ -38,7 +38,34 @@ Further reading:
      and editable. Shooting days are when they are filmed, set by you. Thirty night scenes may be
      two story nights and five shooting nights. The DOOD uses shooting days only.
 
-## Setup
+## Windows app (installer)
+
+You can install this as a normal Windows program instead of using the developer setup below.
+
+1. **Get the installer.** Open the repository's **Actions** tab on GitHub → **Windows installer** →
+   the latest green run. Download **ScreenplayBreakdown-Windows**, which contains
+   `ScreenplayBreakdown-Setup.exe` and a portable zip.
+2. **Run `ScreenplayBreakdown-Setup.exe`.** No administrator rights are needed. The installer is
+   not code-signed, so Windows SmartScreen may say "Windows protected your PC": click **More info →
+   Run anyway**.
+3. **Start Screenplay Breakdown** from the Start menu or the desktop shortcut. A small console
+   window opens and the app opens in your browser. Close the console window to quit.
+4. **Enter your Anthropic API key** on the Import tab to use Claude extraction. It is stored only on
+   your computer.
+
+Details:
+
+- Your projects are saved in `%APPDATA%\ScreenplayBreakdown` and kept if you uninstall or upgrade.
+- OCR for scanned PDFs (Tesseract) is included.
+- The sample scripts are in the Start-menu folder.
+- The installer is rebuilt automatically when the code changes (see
+  `.github/workflows/windows-installer.yml`). Every build runs the full test suite on Windows and a
+  self-test of the built program (`ScreenplayBreakdown.exe --smoke`) before the installer is made.
+- To build it yourself on a Windows PC: build the UI (`npm ci && npm run build` in `frontend`), run
+  `pip install -e "backend[dev]" pyinstaller`, run `pyinstaller desktop/screenplay_breakdown.spec`,
+  then compile `desktop/installer.iss` with Inno Setup.
+
+## Setup (developers)
 
 **Requirements:**
 - Python 3.11+

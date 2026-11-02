@@ -18,6 +18,10 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
   const [extractor, setExtractor] = useState("claude");
   const [recon, setRecon] = useState<any>(null);
   const [djob, setDjob] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
+  const [key, setKey] = useState("");
+  useEffect(() => { api.get("/api/settings").then(setSettings).catch(() => setSettings(null)); }, []);
+  const saveKey = async () => { setSettings(await api.post("/api/settings", { anthropic_api_key: key })); setKey(""); };
   const [depts, setDepts] = useState<{ key: string; label: string }[]>([]);
   const [chosen, setChosen] = useState<string[]>([]);
   useEffect(() => { api.get<any[]>("/api/departments").then((d) => { setDepts(d); setChosen(d.map((x) => x.key)); }); }, []);
@@ -106,6 +110,15 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
         </section>
         <section className="panel">
           <h2>2 · Extract cast & locations · 3 · Reconcile</h2>
+          {settings && !settings.has_api_key && (
+            <div className="row small" style={{ marginBottom: 10 }}>
+              <span>Claude extraction needs your Anthropic API key:</span>
+              <input type="password" placeholder="sk-ant-..." value={key} onChange={(e) => setKey(e.target.value)} />
+              <button className="btn" disabled={!key.trim()} onClick={saveKey}>Save key</button>
+              <span className="muted">(stored only on this computer, in {settings.data_dir})</span>
+            </div>)}
+          {settings && settings.has_api_key && <p className="small muted">Anthropic API key set. <button className="btn" onClick={() => api.post("/api/settings", { anthropic_api_key: "" }).then(setSettings)}>Remove key</button></p>}
+          {settings && !settings.ocr_available && <p className="small" style={{ color: "var(--warn)" }}>OCR (Tesseract) not found — scanned PDFs cannot be read; text PDFs, Word, Final Draft and Fountain work.</p>}
           {!versionId ? <p className="muted">Import or select a script first.</p> : (
             <>
               <div className="row">

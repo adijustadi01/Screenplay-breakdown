@@ -71,6 +71,9 @@ def _render_for_ocr(page):
 def _ocr_image(img, lang: str) -> list[_Word]:
     import pytesseract
 
+    if os.environ.get("TESSERACT_CMD"):          # bundled with the desktop installer
+        pytesseract.pytesseract.tesseract_cmd = os.environ["TESSERACT_CMD"]
+
     data = pytesseract.image_to_data(img, lang=lang, config="--psm 6",
                                      output_type=pytesseract.Output.DICT)
     s = PT / OCR_DPI

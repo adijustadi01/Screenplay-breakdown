@@ -12,3 +12,6 @@ frontend/dist/
 uploads/
 samples/long/
 *.tsbuildinfo
+desktop/Output/
+dist/
+build/
