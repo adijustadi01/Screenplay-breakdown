@@ -44,8 +44,16 @@ def _number(word: str) -> int | None:
     return base
 
 
+IRREGULAR_PLURALS = {"men", "women", "children", "people", "police", "staff", "cattle", "sheep", "geese", "mice",
+                     "folk", "crew", "personnel"}
+COLLECTIVES = {"crowd", "mob", "group", "band", "gang", "army", "troupe", "team", "family", "audience", "flock",
+               "herd", "pack", "procession", "congregation"}
+
+
 def _plural(noun: str) -> bool:
     last = noun.split()[-1].lower()
+    if last in IRREGULAR_PLURALS or last in COLLECTIVES:
+        return True
     return last.endswith("s") and last not in SINGULAR_S and not last.endswith("ss")
 
 
@@ -67,7 +75,7 @@ class DepartmentHeuristicExtractor:
                 if len(tok) > 2 and tok not in VERSION_WORDS:
                     self.cast_tokens.setdefault(tok, c)
 
-    def _matches(self, spec: DepartmentSpec, sentence: str) -> list[tuple[int, int, str]]:
+    def _matches(self, spec: DepartmentSpec, sentence: str) -> list[tuple]:
         found = []
         for cat, words in spec.lexicon.items():
             for w in words:
@@ -80,13 +88,18 @@ class DepartmentHeuristicExtractor:
             if all(e <= cs or s >= ce for cs, ce, _ in chosen):
                 chosen.append((s, e, c))
         chosen.sort()
-        # join adjacent matches of the same category ("Royal Enfield" "motorcycle")
-        joined: list[list] = []
+        # join adjacent matches of the same category ("Royal Enfield" "motorcycle"), and
+        # "X of Y" pairs ("a crowd of villagers") into one item named after Y.
+        joined: list[list] = []   # [start, end, category, name_start, name_end]
         for s, e, c in chosen:
-            if joined and joined[-1][2] == c and sentence[joined[-1][1]:s].strip() == "":
+            gap = sentence[joined[-1][1]:s].strip().lower() if joined else None
+            if joined and joined[-1][2] == c and gap == "":
                 joined[-1][1] = e
+                joined[-1][4] = e
+            elif joined and gap == "of":
+                joined[-1][1], joined[-1][2], joined[-1][3], joined[-1][4] = e, c, s, e
             else:
-                joined.append([s, e, c])
+                joined.append([s, e, c, s, e])
         return [tuple(j) for j in joined]
 
     def extract(self, scene_text: str, ctx: SceneContext) -> dict[str, list[ItemOut]]:
@@ -97,15 +110,17 @@ class DepartmentHeuristicExtractor:
         for spec in self.specs:
             found: dict[str, ItemOut] = {}
             for sent in sentences:
-                for s, e, cat in self._matches(spec, sent):
-                    noun = normalize_name(sent[s:e])
+                for s, e, cat, ns, ne in self._matches(spec, sent):
+                    noun = normalize_name(sent[ns:ne])
                     before = sent[:s]
                     qty, qtext = None, None
                     m = _NUM_RE.search(before)
-                    if m:
+                    if m and _number(m.group(1)) is not None:
                         qty, qtext = _number(m.group(1)), (m.group(0) + sent[s:e]).strip()
-                    elif _SINGULAR_RE.search(before) and not _plural(noun):
-                        qty = 1
+                    elif spec.quantity_matters:
+                        # Headcounts are never implied: only a stated number counts.
+                        art = _SINGULAR_RE.search(before)
+                        qtext = ((art.group(0) if art else "") + sent[s:e]).strip()
                     elif not _plural(noun):
                         qty = 1
                     owner = None
