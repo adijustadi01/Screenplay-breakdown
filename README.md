@@ -43,9 +43,11 @@ samples/              sample script (6 formats) + ground truth + load-test gener
 
 ## Running locally
 
-Requirements: Python 3.11+, and Tesseract for scanned PDFs
+**Requirements:** Python 3.11+, Node 18+ (to build the UI once), and Tesseract for scanned PDFs
 (`brew install tesseract` / `sudo apt install tesseract-ocr`; add language packs such as
-`tesseract-ocr-hin` for Hindi).
+`tesseract-ocr-hin` for Hindi). For Claude extraction you need an Anthropic API key.
+
+### One-time setup
 
 ```bash
 cd backend
@@ -59,37 +61,76 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-### Import a script from the command line
+```bash
+cd ../frontend && npm install && npm run build && cd ../backend
+```
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### Start the app
+
+```bash
+uvicorn app.main:app
+```
+
+Open http://localhost:8000. The workflow follows the tabs:
+
+1. **Import & coverage**: create a project, upload the script, and read the coverage check.
+2. Still on that tab, **run extraction** (Claude, or the offline rules extractor if you have no
+   key), then **Find aliases & location variants**.
+3. **Review queue**: flagged and low-confidence items come first, each beside its exact source
+   passage. Confirm, edit, reject, accept or decline merges, and undo a merge if needed.
+4. **Reports**: scenes, characters, locations, who appears together, and day/night cross-tabs.
+   Click any number to open the scenes behind it.
+5. **Query**: combine location, INT/EXT, time and character filters, and count by rows and columns.
+
+### Command line (same engine)
 
 ```bash
 python -m app.cli import ../samples/monsoon_ledger.pdf --project "Monsoon Ledger"
 ```
 
-This prints the **coverage check**: every page, every character of text, every scene and
-every flagged item. Then list the detected scenes:
-
 ```bash
-python -m app.cli scenes 1
+python -m app.cli extract 1 --extractor claude
 ```
 
-Other useful commands: `python -m app.cli coverage 1` (re-print the check, `--json` for
-machine-readable), `--ocr-lang eng+hin` on import for mixed-language scans, and `--db`
-(or `$DATABASE_URL`) to choose the database. The default is `./breakdown.db`.
-
-### Run the API
-
 ```bash
-uvicorn app.main:app --reload
+python -m app.cli reconcile 1
 ```
 
-Open http://localhost:8000/docs to try the endpoints: upload a script, get the coverage
-check, list scenes, and open a scene with its exact source text.
+```bash
+python -m app.cli report 1 characters
+```
+
+```bash
+python -m app.cli accuracy 1 ../samples/monsoon_ledger.ground_truth.json
+```
+
+Other reports are `scenes`, `locations`, `combinations`, `crosstab:character_time`,
+`crosstab:location_time` and `crosstab:character_location_time`; add `--time effective` to
+group CONTINUOUS/LATER scenes by their inherited lighting, and `--json` for raw output.
+Extraction settings: `--model` (default `claude-opus-5-5`), `--effort` (default `medium`),
+`--workers` (parallel requests, default 4). `--extractor heuristic` runs offline with no key.
 
 ### Run the tests
 
 ```bash
 pytest
 ```
+
+`pytest tests/test_stage1_acceptance.py -v` runs one check per Stage 1 requirement.
+
+### How extraction stays honest
+
+- **Code decides what code can decide.** Dialogue cues give who speaks, (V.O.)/(O.S.) and
+  dialogue counts. If Claude disagrees, the code wins and the item is flagged.
+- **Every quote is checked.** Claude must quote the script as evidence. A quote that isn't in
+  the scene halves the confidence and sends the fact to review.
+- **Merges are proposals.** Nothing is merged until you accept it, and accepted merges can be undone.
+- **Your corrections are locked.** Re-running extraction never overwrites a fact you confirmed or edited.
+- **Reports are queries.** A correction shows up in every report on the next click.
 
 ## Sample script and ground truth
 

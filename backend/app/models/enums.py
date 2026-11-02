@@ -150,6 +150,7 @@ class ExtractorKind(str, enum.Enum):
     PARSER = "parser"              # deterministic code (headings, cues)
     OCR = "ocr"
     LLM = "llm"
+    RULES = "rules"                # offline rule-based extractor (no LLM)
     RECONCILIATION = "reconciliation"
     HUMAN = "human"                # added by the AD
 

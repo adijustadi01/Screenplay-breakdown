@@ -21,20 +21,22 @@ and query the results.
 
 ---
 
-## Stage 1 — Foundation: scenes, cast, locations, cross-counts  *(in progress)*
+## Stage 1 — Foundation: scenes, cast, locations, cross-counts  *(complete — awaiting your test on a real script)*
 
 | Step | Module | Status |
 |---|---|---|
 | 0 | Stack, folder structure, ROADMAP, DATA_MODEL, schema | ✅ done (approved) |
-| 1 | Script import (PDF / DOCX / FDX / Fountain, OCR fallback) + coverage check | ✅ done — awaiting your testing |
-| 1b | Scene detection: headings, original numbers, page refs, 1/8-page lengths | ✅ done — awaiting your testing |
-| 2 | Per-scene LLM extraction: characters (present/mentioned, speaking/silent), location + sub-location, INT/EXT, time, synopsis | ⏳ |
-| 3 | Reconciliation: character aliases, location variants → review queue proposals | ⏳ |
-| 4 | Reports (computed in code): scene, character, location, character-combination, day/night cross-tabs | ⏳ |
-| 5 | Review queue UI: confirm / edit / reject with source passage; corrections propagate to reports | ⏳ |
-| 6 | Query panel: composable filters (location + INT/EXT + time + character), every number drills down | ⏳ |
-| — | Sample script (10–15 scenes) + ground-truth JSON + accuracy test | ✅ import accuracy; extraction accuracy with Step 2 |
-| — | Verified end-to-end on a real ~300-page script | ⏳ synthetic 305-page PDF verified; needs your real script |
+| 1 | Script import (PDF / DOCX / FDX / Fountain, OCR fallback) + coverage check | ✅ |
+| 1b | Scene detection: headings, original numbers, page refs, 1/8-page lengths | ✅ |
+| 2 | Per-scene extraction (Claude, verified in code; offline rules fallback): characters (present/mentioned, speaking/silent), location + sub-location, synopsis | ✅ |
+| 3 | Reconciliation: character aliases, casting variants, location variants/parents → review-queue proposals (undoable) | ✅ |
+| 4 | Reports (computed in code): scene, character, location, character-combination, day/night cross-tabs | ✅ |
+| 5 | Review queue UI: confirm / edit / reject / accept / undo with source passage; corrections propagate to reports | ✅ |
+| 6 | Query panel: composable filters (location + INT/EXT + time + character), every number drills down | ✅ |
+| — | Sample script (15 scenes, 6 formats) + ground-truth JSON + accuracy command | ✅ |
+| — | Verified end-to-end on a ~300-page script | ✅ synthetic 305-page PDF (4 s) and scan (2 min 40 s OCR); ⏳ needs your real script + live Claude run |
+
+**Stage 1 acceptance:** `pytest tests/test_stage1_acceptance.py -v` (one test per requirement).
 
 **Stage 1 exit criteria:** a real 300-page script imports with a clean coverage report,
 extraction accuracy is measured against the sample ground truth, and every report number
@@ -86,7 +88,11 @@ breakdown sheets (one sheet per scene, colour-coded by department).
   (SW/W/H/WF/Travel), call-sheet seeds.
 - Export compatible with Movie Magic Scheduling / StudioBinder formats where feasible.
 
-**Known limitations to revisit (from Step 1)**
+**Known limitations to revisit (from Stage 1)**
+- Live Claude extraction accuracy has not been measured in the build environment (no API key
+  there). Measure it with `python -m app.cli accuracy` after a Claude run; the offline rules
+  extractor scores 97% precision/recall on the sample but will do worse on messy real scripts.
+- Extraction runs one request per scene; the Batch API (50% cost) is a possible later option.
 - DOCX/FDX/Fountain page breaks are computed (~55 lines/page) and break between
   elements, so lengths can differ slightly from Final Draft's own pagination. FDX files that
   carry `SceneProperties` use Final Draft's own lengths instead.

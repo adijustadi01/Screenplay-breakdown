@@ -63,3 +63,10 @@ def test_unprefixed_heading_is_ambiguous_with_lower_confidence():
 def test_scene_number_ordering():
     keys = [scene_number_sort_key(n) for n in ["1", "2", "A3", "3", "3A", "3B", "4"]]
     assert keys == sorted(keys)
+
+
+def test_ocr_bracket_noise_around_numbers():
+    h = parse_heading("447]   INT. ARJUN'S HOUSE —- KITCHEN —- LATER   447]")
+    assert (h.scene_number_left, h.scene_number_right) == ("447", "447")
+    assert h.location_raw == "ARJUN'S HOUSE - KITCHEN"
+    assert h.time_of_day is TimeOfDay.LATER

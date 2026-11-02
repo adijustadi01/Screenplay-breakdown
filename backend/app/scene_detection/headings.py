@@ -14,9 +14,10 @@ from ..models.enums import RELATIVE_TIMES, HeadingStatus, IntExt, TimeOfDay
 
 # Scene numbers: 23, 23A, A23, AA23, 23AB, 23.1 is NOT supported on purpose (ambiguous with prices etc.)
 SCENE_NUMBER = r"[A-Z]{0,2}\d{1,4}[A-Z]{0,3}"
-_NUM_TOKEN_RE = re.compile(rf"^\(?({SCENE_NUMBER})\)?\.?$")
-_LEADING_NUM_RE = re.compile(rf"^\s*({SCENE_NUMBER})\.?(?=\s)\s*")
-_TRAILING_NUM_RE = re.compile(rf"(\s+)({SCENE_NUMBER})\.?\s*$")
+# OCR often adds stray brackets/pipes around margin numbers ("47]", "|12", "(23)").
+_NUM_TOKEN_RE = re.compile(rf"^[\[(|]?({SCENE_NUMBER})[\])|.,:;]*$")
+_LEADING_NUM_RE = re.compile(rf"^\s*[\[(|]?({SCENE_NUMBER})[\])|.]*(?=\s)\s*")
+_TRAILING_NUM_RE = re.compile(rf"(\s+)[\[(|]?({SCENE_NUMBER})[\])|.]*\s*$")
 _FOUNTAIN_NUM_RE = re.compile(r"\s*#([\w.\-]+)#\s*$")
 _REVISION_MARK_RE = re.compile(r"\s*\*+\s*$")
 

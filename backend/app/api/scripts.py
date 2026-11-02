@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..importers.coverage import coverage_report
 from ..importers.service import UnsupportedFormat, import_script
 from ..models import Page, Project, Scene, ScriptElement, ScriptVersion
+from ..scene_detection.headings import parse_heading
 from ..scene_detection.pagination import format_eighths
 from .deps import get_session
 
@@ -87,7 +88,9 @@ def _scene_dict(sc: Scene) -> dict[str, Any]:
     return {
         "id": sc.id, "seq": sc.seq, "scene_number": sc.scene_number,
         "scene_number_right": sc.scene_number_right, "number_status": sc.number_status.value,
-        "is_omitted": sc.is_omitted, "heading_raw": sc.heading_raw, "heading_status": sc.heading_status.value,
+        "is_omitted": sc.is_omitted, "heading_raw": sc.heading_raw,
+        "heading": parse_heading(sc.heading_raw.split("\n")[0]).text if sc.heading_raw else None,
+        "heading_status": sc.heading_status.value,
         "int_ext": sc.int_ext.value, "int_ext_raw": sc.int_ext_raw, "location_raw": sc.location_raw,
         "time_of_day": sc.time_of_day.value, "time_of_day_raw": sc.time_of_day_raw,
         "effective_time_of_day": sc.effective_time_of_day.value if sc.effective_time_of_day else None,

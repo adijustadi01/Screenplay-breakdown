@@ -56,7 +56,7 @@ erDiagram
 | `source_scene_id` | Scene the fact was read from |
 | `source_element_start_id` / `_end_id` | Exact range of script elements (lines) supporting it |
 | `source_excerpt` | Verbatim quote of the supporting text |
-| `extracted_by` | `parser` · `ocr` · `llm` · `reconciliation` · `human` |
+| `extracted_by` | `parser` · `ocr` · `llm` · `rules` (offline extractor) · `reconciliation` · `human` |
 | `extraction_run_id` | Which run (model + prompt version) produced it |
 | `confidence` | 0.0–1.0 (DB-enforced range) |
 | `needs_review` + `review_reason` | Flag + machine-readable reason(s), e.g. `continuous_time` |
@@ -80,7 +80,7 @@ script version) so they survive revisions in Stage 3.
 
 **script_elements** — every typed block of text in order (`scene_heading`, `action`,
 `character`, `parenthetical`, `dialogue`, `transition`, `shot`, `page_header`,
-`title_page`, `unknown`), with page, owning scene, raw + normalised text, line count and
+`title_page`, `non_printing` (Fountain notes/sections), `unknown`), with page, owning scene, raw + normalised text, line count and
 PDF y-coordinates (for 1/8-page lengths). **Coverage proof:** every element is either in
 a scene, is non-scene furniture, or produces a review item.
 
@@ -102,7 +102,7 @@ model, prompt version, params, stats, errors.
 | `time_of_day` + `time_of_day_raw` | **As written**: `DAY NIGHT DAWN DUSK SUNRISE SUNSET MORNING AFTERNOON EVENING CONTINUOUS SAME LATER MOMENTS LATER UNSPECIFIED OTHER` |
 | `effective_time_of_day` | For relative times only: lighting inherited from the nearest earlier absolute-time scene; `effective_time_source_scene_id` says which one; `effective_time_needs_review` is always true until confirmed |
 | `start/end_page_id`, `start/end_page_label` | Source page references |
-| `length_eighths` + `length_method` | Integer eighths (13 = 1 5/8 pp). `pdf_geometry` (vertical extent on the real page) or `line_count` (computed pagination for DOCX/FDX/Fountain) |
+| `length_eighths` + `length_method` | Integer eighths (13 = 1 5/8 pp). `pdf_geometry` (vertical extent on the real page), `line_count` (computed pagination for DOCX/FDX/Fountain) or `source_document` (Final Draft's own lengths when the .fdx carries them). Omitted scenes are 0. |
 | `synopsis` | Short description (LLM), with run id |
 
 Provenance on a scene covers the **heading parse** (source = the heading element).
@@ -132,8 +132,11 @@ written, `doubles_role_id` for doubles.
 | `uncertain` | Text doesn't say | Not until reviewed; always `needs_review` |
 
 `speaking` = `speaking` · `silent` · `unknown`. `dialogue_block_count` is counted by the
-**parser** from dialogue cues — not by the LLM. `name_as_written` keeps how this scene
-refers to the character.
+**parser** from dialogue cues — not by the LLM; cue extensions (V.O.)/(O.S.) also set
+`presence` in code and override the model if it disagrees (flagged). `name_as_written` keeps
+how this scene refers to the character; `version_note` keeps an age/version cue ("10",
+"young") as evidence for casting roles. For GROUP characters the per-scene headcount lives
+on the appearance (`quantity_min/max/raw`, NULL = unknown, flagged).
 
 ## Locations
 
@@ -176,17 +179,14 @@ Reports are queries, not stored numbers. When the AD rejects an appearance, its
 `review_status` becomes `rejected`, an event is logged, and every report that reads
 appearances simply stops counting it on the next request. No cache to invalidate.
 
-## Decisions I'd like you to confirm
+## Decisions (approved)
 
-1. **O.S. counts as an appearance** (actor needed on set), shown as a separate column so
-   it can be excluded. V.O. does *not* count as an on-set appearance. OK?
-2. **Relative times** (CONTINUOUS/SAME/LATER/MOMENTS LATER): reports group by the
-   *as-written* value by default, with a toggle to group by the *inherited* value
-   (marked as inferred). OK?
-3. **Scenes link to the most specific location** (the set), with roll-up to parent in
-   reports — rather than linking to both. OK?
-4. **Group characters** with dialogue ("GOONS", "VILLAGERS") are characters with unknown
-   headcount; non-speaking crowds wait for Stage 2 background. OK?
-5. **Page lengths**: for PDFs, 1/8ths from real geometry; for DOCX/FDX/Fountain, from
-   standard pagination (~55 lines/page), so they may differ slightly from Final Draft's
-   own count. Acceptable?
+1. **O.S. counts as an appearance** (actor needed on set), shown in its own column so it can be
+   excluded; V.O. never counts as on set.
+2. **Relative times** (CONTINUOUS/SAME/LATER/MOMENTS LATER): reports group by the as-written value
+   by default, with a toggle to group by the inherited value (marked as inferred).
+3. **Scenes link to the most specific location** (the set); reports roll up to the parent.
+4. **Group characters** with dialogue are characters with a per-scene headcount (unknown stays
+   unknown); non-speaking crowds wait for Stage 2 background.
+5. **Page lengths**: PDF from real geometry; DOCX/FDX/Fountain from standard pagination (~55
+   lines/page), or Final Draft's own figures when the .fdx includes them.

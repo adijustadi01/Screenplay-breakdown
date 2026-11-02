@@ -131,6 +131,10 @@ def import_pdf(path: str | Path, ocr_lang: str = "eng") -> ImportResult:
     if need_ocr:
         from concurrent.futures import ThreadPoolExecutor
 
+        # One thread per Tesseract process: we parallelise across pages ourselves, and
+        # Tesseract's own OpenMP threads on top of that oversubscribe the CPU badly.
+        os.environ.setdefault("OMP_THREAD_LIMIT", "1")
+
         images = {pno: _render_for_ocr(doc[pno - 1]) for pno in need_ocr}
         with ThreadPoolExecutor(max_workers=max(1, min(8, (os.cpu_count() or 2)))) as pool:
             futures = {pno: pool.submit(_ocr_image, img, ocr_lang) for pno, img in images.items()}
@@ -215,7 +219,7 @@ def import_pdf(path: str | Path, ocr_lang: str = "eng") -> ImportResult:
             y0, y1 = ln.y0, ln.y1
             in_header = y1 < 0.9 * PT
             in_footer = y0 > page_h - 0.75 * PT
-            whole = " ".join(_span_text(s) for s in _spans(ln, char_w)).strip()
+            whole = re.sub(r"[\[\]|]", "", " ".join(_span_text(s) for s in _spans(ln, char_w))).strip()
             is_furn = (
                 _CONTINUED_RE.match(whole) or _FURNITURE_RE.match(main)
                 or ((in_header or in_footer) and len(main) <= 60)

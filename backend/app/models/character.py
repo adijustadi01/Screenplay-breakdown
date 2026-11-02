@@ -86,7 +86,7 @@ class CastingRole(ProvenanceMixin, Base):
     character = relationship("Character", back_populates="casting_roles", foreign_keys=[character_id])
 
 
-class Appearance(ProvenanceMixin, Base):
+class Appearance(ProvenanceMixin, QuantityMixin, Base):
     """Character <-> Scene link. Exactly one row per (scene, character, casting role).
 
     `presence` decides whether this counts as an appearance:
@@ -114,6 +114,9 @@ class Appearance(ProvenanceMixin, Base):
     speaking: Mapped[Speaking] = mapped_column(enum_col(Speaking), default=Speaking.UNKNOWN)
     dialogue_block_count: Mapped[int] = mapped_column(Integer, default=0)
     name_as_written: Mapped[str | None] = mapped_column(String(255))  # how this scene refers to them
+    # Age/version cue in this scene ("10", "young") — evidence for casting-role reconciliation.
+    version_note: Mapped[str | None] = mapped_column(String(120))
+    # Quantity columns (QuantityMixin) hold a GROUP's headcount in THIS scene; NULL = unknown.
 
     scene = relationship("Scene", back_populates="appearances", foreign_keys=[scene_id])
     character = relationship("Character", foreign_keys=[character_id])
