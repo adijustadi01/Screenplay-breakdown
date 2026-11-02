@@ -411,3 +411,92 @@ def add_item(scene_id: int, body: AddItemIn, s: Session = Depends(get_session)) 
     log_event(s, pid, occ, "create", body.actor)
     s.commit()
     return snapshot(occ)
+
+
+# ----------------------------------------------------------------------------- Excel export
+@router.get("/script-versions/{version_id}/export.xlsx")
+def export_excel(version_id: int, s: Session = Depends(get_session)):
+    from urllib.parse import quote
+
+    from fastapi.responses import Response
+
+    from ..export.excel import build_workbook
+    _version(s, version_id)
+    data, filename = build_workbook(s, version_id)
+    return Response(
+        data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=\"breakdown.xlsx\"; filename*=UTF-8''{quote(filename)}"})
+
+
+# ------------------------------------------------------------------- one-click full breakdown
+class BreakdownAllIn(BaseModel):
+    extractor: Literal["claude", "heuristic"] = "claude"
+    workers: int = 4
+
+
+def _all_key(version_id: int) -> str:
+    return f"all:{version_id}"
+
+
+@router.post("/script-versions/{version_id}/breakdown-all")
+def start_breakdown_all(version_id: int, body: BreakdownAllIn, s: Session = Depends(get_session)) -> dict:
+    """Cast & locations -> find aliases/variants (proposals only) -> every department, as one job."""
+    from ..departments import registry
+    from ..departments.service import run_department_extraction
+    _version(s, version_id)
+    key = _all_key(version_id)
+    if any(JOBS.get(k, {}).get("status") == "running" for k in (key, version_id, -version_id)):
+        raise HTTPException(409, "a breakdown is already running for this script")
+    extractor = make_extractor(body.extractor)
+    specs = registry.get()
+    if body.extractor == "claude":
+        from ..departments.claude_extractor import DepartmentClaudeExtractor
+        dept_ex = DepartmentClaudeExtractor(specs)
+    else:
+        from ..departments.heuristic import DepartmentHeuristicExtractor
+        dept_ex = DepartmentHeuristicExtractor(specs)
+    JOBS[key] = {"status": "running", "step": 1, "steps": 3, "step_label": "Reading scenes: cast & locations",
+                 "done": 0, "total": 0, "extractor": body.extractor, "error": None}
+    factory = deps._factory or deps.configure()
+
+    def work():
+        job = JOBS[key]
+        with factory() as session:
+            try:
+                run_extraction(session, version_id, extractor, workers=body.workers,
+                               progress=lambda d, t: job.update(done=d, total=t))
+                session.commit()
+                job.update(step=2, step_label="Matching names (e.g. RAJ = RAJESH) and locations", done=0, total=0)
+                propose(session, version_id)
+                session.commit()
+                job.update(step=3, step_label="Department breakdown: props, costumes, vehicles…", done=0, total=0)
+                run_department_extraction(session, version_id, dept_ex, workers=body.workers,
+                                          progress=lambda d, t: job.update(done=d, total=t))
+                session.commit()
+                job.update(status="finished", step_label="Done")
+            except Exception as exc:
+                session.commit()
+                job.update(status="failed", error=str(exc))
+
+    threading.Thread(target=work, daemon=True).start()
+    return JOBS[key]
+
+
+@router.get("/script-versions/{version_id}/progress")
+def script_progress(version_id: int, s: Session = Depends(get_session)) -> dict:
+    """What has been done for this script — drives the Start screen's checklist."""
+    from ..models import ReviewItem
+    from ..models.enums import ReviewItemStatus, RunKind, RunStatus
+    v = _version(s, version_id)
+    runs = s.scalars(select(ExtractionRun).where(ExtractionRun.script_version_id == version_id)).all()
+    ok = {RunStatus.SUCCEEDED, RunStatus.PARTIAL}
+    open_reviews = len(s.scalars(select(ReviewItem.id).where(ReviewItem.script_version_id == version_id,
+                                                              ReviewItem.status == ReviewItemStatus.OPEN)).all())
+    return {
+        "project_id": v.project_id, "file": v.source_filename,
+        "scenes": len(s.scalars(select(Scene.id).where(Scene.script_version_id == version_id)).all()),
+        "cast_done": any(r.kind == RunKind.SCENE_EXTRACTION and r.status in ok for r in runs),
+        "departments_done": any(r.kind == RunKind.DEPARTMENT_EXTRACTION and r.status in ok for r in runs),
+        "open_reviews": open_reviews,
+        "job": JOBS.get(_all_key(version_id)),
+    }

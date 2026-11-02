@@ -116,7 +116,38 @@ uvicorn app.main:app
 Open **http://localhost:8000**. The database is `backend/breakdown.db` (SQLite); set
 `DATABASE_URL` to use Postgres instead.
 
+## Quick start — four steps
+
+The app opens on **Start here**:
+
+1. **Choose your script** and click **Import script**.
+2. Click **Break down my script**. One click runs everything: cast and locations, matching name
+   variants (proposals only, nothing merged), and all nine departments. It uses Claude when an API key is
+   saved, otherwise the free built-in reader.
+3. **Open the checklist** (the *To check* tab) and confirm, edit or reject what the app was unsure about.
+4. **Download Excel file**. You can also use the **⬇ Excel** button at the top right on any screen.
+
+### The Excel file
+
+You get one workbook. Every number comes from the same in-code reports the app shows. Sheets:
+
+- **Read me**: summary, how to read the file, and links to each sheet.
+- **Scene breakdown**: the master, one row per scene. Columns: Sc, page, INT/EXT, location, time,
+  pages, story day, cast on screen, speaking, O.S./V.O., synopsis, and a column per department.
+- **Characters**, **Locations**.
+- **One sheet per department** that has items.
+- **Costume & look continuity**.
+- **Schedule** and **DOOD** for each schedule.
+- **To check**: the open review items.
+
+Uncertain rows are **yellow, marked CHECK**, and night scenes are blue. Unknown values stay
+"unknown"; nothing is filled in. API: `GET /api/script-versions/{id}/export.xlsx`.
+
 ## Using it — the tabs, in workflow order
+
+Each tab now shows a one-line explanation at the top. Tab names in the app: Start here, Scenes, To check
+(= Review queue), Cast & locations (= Reports), Departments, Schedule & DOOD, Search (= Query),
+Compare drafts (= Revisions), and Import details (= Import & coverage, the advanced controls).
 
 | Tab | Stage | What you do there |
 |---|---|---|

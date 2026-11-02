@@ -30,7 +30,10 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
     if (category) q.set("category", category);
     if (severity) q.set("severity", severity);
     if (reason) q.set("reason", reason);
-    api.get<any>(`/api/projects/${projectId}/review?${q}`).then((d) => { setData(d); setChecked(new Set()); });
+    api.get<any>(`/api/projects/${projectId}/review?${q}`).then((d) => {
+      setData(d); setChecked(new Set());
+      setSel((cur) => cur ?? d.items[0]?.id ?? null);     // open the first item so the screen is never blank
+    });
   }, [projectId, versionId, status, category, severity, reason]);
   useEffect(load, [load]);
   useEffect(() => {
