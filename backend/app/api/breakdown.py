@@ -288,3 +288,124 @@ def locations(project_id: int, s: Session = Depends(get_session)) -> list[dict]:
     return [{"id": loc.id, "name": loc.name, "parent_id": loc.parent_id, "kind": loc.kind.value,
              "status": loc.status.value}
             for loc in s.scalars(select(Location).where(Location.project_id == project_id).order_by(Location.name))]
+
+
+# ------------------------------------------------------------------------ departments (Stage 2)
+class DeptExtractIn(BaseModel):
+    extractor: Literal["claude", "heuristic"] = "claude"
+    departments: list[str] | None = None
+    workers: int = 4
+
+
+@router.get("/departments")
+def list_departments() -> list[dict]:
+    from ..departments import registry
+    return [{"key": s.key.value, "label": s.label, "item_noun": s.item_noun, "categories": list(s.categories),
+             "roles": list(s.roles), "details": [d.name for d in s.details]} for s in registry.SPECS.values()]
+
+
+@router.post("/script-versions/{version_id}/departments/extract")
+def start_department_extraction(version_id: int, body: DeptExtractIn, s: Session = Depends(get_session)) -> dict:
+    from ..departments import registry
+    from ..departments.service import run_department_extraction
+    _version(s, version_id)
+    key = -version_id                       # separate job slot from Stage 1 extraction
+    if JOBS.get(key, {}).get("status") == "running":
+        raise HTTPException(409, "department extraction already running for this script")
+    try:
+        specs = registry.get(body.departments)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if body.extractor == "claude":
+        from ..departments.claude_extractor import DepartmentClaudeExtractor
+        ex = DepartmentClaudeExtractor(specs)
+    else:
+        from ..departments.heuristic import DepartmentHeuristicExtractor
+        ex = DepartmentHeuristicExtractor(specs)
+    JOBS[key] = {"status": "running", "done": 0, "total": 0, "extractor": body.extractor, "error": None,
+                 "departments": [x.key.value for x in specs]}
+    factory = deps._factory or deps.configure()
+
+    def work():
+        with factory() as session:
+            try:
+                run = run_department_extraction(session, version_id, ex, workers=body.workers,
+                                                progress=lambda d, t: JOBS[key].update(done=d, total=t))
+                session.commit()
+                JOBS[key].update(status="finished", run_id=run.id, run_status=run.status.value)
+            except Exception as exc:
+                session.commit()
+                JOBS[key].update(status="failed", error=str(exc))
+
+    threading.Thread(target=work, daemon=True).start()
+    return JOBS[key]
+
+
+@router.get("/script-versions/{version_id}/departments/extract")
+def department_extraction_status(version_id: int) -> dict:
+    return {"job": JOBS.get(-version_id)}
+
+
+@router.get("/script-versions/{version_id}/departments/{name}/report")
+def department_report(version_id: int, name: str, time_mode: Literal["as_written", "effective"] = "as_written",
+                      s: Session = Depends(get_session)) -> dict:
+    from ..departments.reports import run_department_report
+    _version(s, version_id)
+    try:
+        return run_department_report(s, version_id, name, time_mode)
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(404, f"unknown department {name!r}") from exc
+
+
+@router.get("/scenes/{scene_id}/sheet")
+def scene_sheet(scene_id: int, s: Session = Depends(get_session)) -> dict:
+    from ..departments.reports import scene_sheet as sheet
+    from ..reports.facts import load_facts
+    sc = s.get(Scene, scene_id)
+    if sc is None:
+        raise HTTPException(404, "scene not found")
+    return sheet(load_facts(s, sc.script_version_id), scene_id)
+
+
+class AddItemIn(BaseModel):
+    department: str
+    name: str
+    category: str | None = None
+    quantity: int | None = None
+    quantity_raw: str | None = None
+    description: str | None = None
+    actor: str = ACTOR_DEFAULT
+
+
+@router.post("/scenes/{scene_id}/items")
+def add_item(scene_id: int, body: AddItemIn, s: Session = Depends(get_session)) -> dict:
+    """The AD adds a department item the extraction missed."""
+    from ..extraction.cues import normalize_name
+    from ..models import BreakdownItem, BreakdownOccurrence
+    from ..models.enums import Department, ExtractorKind
+    from ..review.audit import log_event
+    sc = s.get(Scene, scene_id)
+    if sc is None:
+        raise HTTPException(404, "scene not found")
+    pid = s.get(ScriptVersion, sc.script_version_id).project_id
+    dept = Department(body.department)
+    name = normalize_name(body.name)
+    item = s.scalars(select(BreakdownItem).where(BreakdownItem.project_id == pid, BreakdownItem.department == dept,
+                                                 BreakdownItem.name == name)).first()
+    if item is None:
+        item = BreakdownItem(project_id=pid, department=dept, name=name, category=body.category or "other",
+                             extracted_by=ExtractorKind.HUMAN, review_status=ReviewStatus.CONFIRMED)
+        s.add(item)
+        s.flush()
+    if s.scalars(select(BreakdownOccurrence).where(BreakdownOccurrence.scene_id == scene_id,
+                                                   BreakdownOccurrence.item_id == item.id)).first():
+        raise HTTPException(400, "that item is already in this scene — edit it instead")
+    occ = BreakdownOccurrence(scene_id=scene_id, item_id=item.id, department=dept, description=body.description,
+                              quantity_min=body.quantity, quantity_max=body.quantity, quantity_raw=body.quantity_raw,
+                              extracted_by=ExtractorKind.HUMAN, confidence=1.0, review_status=ReviewStatus.CONFIRMED,
+                              source_scene_id=scene_id)
+    s.add(occ)
+    s.flush()
+    log_event(s, pid, occ, "create", body.actor)
+    s.commit()
+    return snapshot(occ)

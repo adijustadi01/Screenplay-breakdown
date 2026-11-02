@@ -20,6 +20,22 @@ from ..reports.facts import Facts, load_facts
 from ..reports.service import IE_ORDER, TIME_ORDER, _order, cell, scene_ref
 
 
+class ElementFilter(BaseModel):
+    """A department element the scene must contain. Fields AND together; empty fields are ignored.
+
+    {"department": "vehicles", "category": "motorcycle"}    any motorcycle
+    {"department": "action_effects", "text": "rain"}         rain
+    {"item_ids": [12]}                                        that specific jeep
+    """
+
+    department: str | None = None
+    category: str | None = None
+    item_ids: list[int] = Field(default_factory=list)
+    text: str | None = None
+    character_id: int | None = None     # e.g. the hero must be the driver/user/wearer
+    role: str | None = None
+
+
 class QueryFilters(BaseModel):
     location_ids: list[int] = Field(default_factory=list)
     int_ext: list[str] = Field(default_factory=list)
@@ -30,7 +46,9 @@ class QueryFilters(BaseModel):
     include_off_screen: bool = True
     include_voice_only: bool = False
     include_omitted: bool = False
-    rows: Literal["none", "character", "location", "story_location", "int_ext", "time"] = "none"
+    elements: list[ElementFilter] = Field(default_factory=list)
+    rows: Literal["none", "character", "location", "story_location", "int_ext", "time", "item"] = "none"
+    rows_department: str | None = None   # with rows="item": which department's items
     columns: Literal["none", "time", "int_ext"] = "none"
 
 
@@ -55,6 +73,19 @@ def describe(q: QueryFilters, f: Facts) -> str:
         names = [f.characters[c].canonical_name for c in q.character_ids if c in f.characters]
         joiner = " and " if q.character_match == "all" else " or "
         parts.append("featuring " + joiner.join(names))
+    for e in q.elements:
+        bits = []
+        if e.item_ids:
+            bits.append(" or ".join(sorted({o.name for o in f.occurrences if o.item_id in e.item_ids})) or "item")
+        if e.category:
+            bits.append(e.category)
+        if e.text:
+            bits.append(f"“{e.text}”")
+        if e.department and not bits:
+            bits.append(f"any {e.department.replace('_', ' ')} element")
+        if e.character_id and e.character_id in f.characters:
+            bits.append(f"with {f.characters[e.character_id].canonical_name}" + (f" as {e.role}" if e.role else ""))
+        parts.append("with " + " ".join(bits))
     s = ", ".join(parts)
     if q.rows != "none" or q.columns != "none":
         s += f"; counted by {q.rows if q.rows != 'none' else 'total'}" + (
@@ -69,6 +100,29 @@ def run_query(session: Session, version_id: int, q: QueryFilters) -> dict[str, A
     for a in f.appearances:
         if a.presence in pres and a.character_id in f.characters:
             cast[a.scene_id].add(a.character_id)
+
+    occ_by_scene: dict[int, list] = defaultdict(list)
+    for o in f.occurrences:
+        occ_by_scene[o.scene_id].append(o)
+
+    def element_ok(o, e: ElementFilter) -> bool:
+        if e.department and o.department != e.department:
+            return False
+        if e.category and (o.category or "") != e.category:
+            return False
+        if e.item_ids and o.item_id not in e.item_ids:
+            return False
+        if e.text:
+            hay = f"{o.name} {o.category or ''} {o.description or ''}".lower()
+            if e.text.lower() not in hay:
+                return False
+        if e.character_id is not None:
+            roles = [r for c, r in o.characters if c == e.character_id]
+            if not roles and o.owner_id != e.character_id:
+                return False
+            if e.role and e.role not in roles:
+                return False
+        return True
 
     want_locs = set(q.location_ids)
     matched = []
@@ -86,6 +140,8 @@ def run_query(session: Session, version_id: int, q: QueryFilters) -> dict[str, A
             ok = set(q.character_ids) <= have if q.character_match == "all" else bool(set(q.character_ids) & have)
             if not ok:
                 continue
+        if q.elements and not all(any(element_ok(o, e) for o in occ_by_scene.get(s.id, [])) for e in q.elements):
+            continue
         matched.append(s)
 
     def row_keys(s) -> list[str]:
@@ -102,6 +158,9 @@ def run_query(session: Session, version_id: int, q: QueryFilters) -> dict[str, A
             return [f.loc_label(s.location_path[0]) if s.location_path else "(no location)"]
         if q.rows == "int_ext":
             return [s.int_ext]
+        if q.rows == "item":
+            return sorted({o.name for o in occ_by_scene.get(s.id, [])
+                           if not q.rows_department or o.department == q.rows_department})
         return [s.time(q.time_mode)]
 
     def col_key(s) -> str:
@@ -147,4 +206,16 @@ def query_options(session: Session, version_id: int) -> dict[str, Any]:
         "int_ext": _order({s.int_ext for s in f.scenes}, IE_ORDER),
         "times_as_written": _order({s.time_written for s in f.scenes}, TIME_ORDER),
         "times_effective": _order({s.time_effective for s in f.scenes}, TIME_ORDER),
+        "elements": _element_options(f),
     }
+
+
+def _element_options(f: Facts) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for o in f.occurrences:
+        d = out.setdefault(o.department, {"categories": set(), "items": {}})
+        d["categories"].add(o.category or "other")
+        d["items"][o.item_id] = o.name
+    return {k: {"categories": sorted(v["categories"]),
+                "items": sorted(({"id": i, "name": n} for i, n in v["items"].items()), key=lambda x: x["name"])}
+            for k, v in sorted(out.items())}

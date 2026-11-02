@@ -26,3 +26,6 @@ def project(db):
     db.add(p)
     db.flush()
     return p
+
+DEPT_TRUTH_PATH = SAMPLES / "highway_song.ground_truth.json"
+DEPT_TRUTH = json.loads(DEPT_TRUTH_PATH.read_text())

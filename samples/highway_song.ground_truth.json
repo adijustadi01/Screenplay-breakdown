@@ -1,0 +1,1150 @@
+{
+ "_about": "Department ground truth for samples/highway_song.fountain. 'match' = keywords any of which must appear in the extracted item name/description; qty null = unknown (must stay unknown); inferred=true items must be flagged for review.",
+ "title": "HIGHWAY SONG",
+ "scene_count": 8,
+ "scenes": [
+  {
+   "seq": 1,
+   "number": "1",
+   "items": [
+    {
+     "department": "vehicles",
+     "name": "RAGHAV'S ROYAL ENFIELD",
+     "category": "motorcycle",
+     "match": [
+      "enfield",
+      "motorcycle"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "driver",
+      "TARA": "passenger"
+     },
+     "details": {
+      "moving": true,
+      "action": "chase",
+      "condition": "battered"
+     },
+     "inferred": false
+    },
+    {
+     "department": "vehicles",
+     "name": "KHAN'S POLICE JEEP",
+     "category": "police_vehicle",
+     "match": [
+      "jeep"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "INSPECTOR KHAN": "owner"
+     },
+     "details": {
+      "moving": true,
+      "action": "chase"
+     },
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "RAGHAV \u2014 LEATHER JACKET",
+     "category": "everyday",
+     "match": [
+      "leather jacket",
+      "jacket"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "wearer"
+     },
+     "details": {
+      "state": "wet"
+     },
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "TARA \u2014 RED SALWAR KAMEEZ",
+     "category": "traditional",
+     "match": [
+      "salwar"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "TARA": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "TARA \u2014 DUPATTA",
+     "category": "accessory",
+     "match": [
+      "dupatta"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "TARA": "wearer"
+     },
+     "details": {
+      "state": "torn"
+     },
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "RAIN",
+     "category": "rain",
+     "match": [
+      "rain"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {
+      "practical": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "MOTORCYCLE CHASE",
+     "category": "chase",
+     "match": [
+      "chase"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "performer",
+      "TARA": "performer"
+     },
+     "details": {
+      "stunt_double_needed": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "POLICE SIREN",
+     "category": "scripted_sound",
+     "match": [
+      "siren"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "RAIN TOWERS FOR NIGHT EXTERIOR",
+     "category": "weather_effects",
+     "match": [
+      "rain"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "VEHICLE CAMERA RIG / TRACKING VEHICLE",
+     "category": "vehicle_rig",
+     "match": [
+      "rig",
+      "tracking",
+      "process"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  },
+  {
+   "seq": 2,
+   "number": "2",
+   "items": [
+    {
+     "department": "background",
+     "name": "DANCERS",
+     "category": "dancers",
+     "match": [
+      "dancer"
+     ],
+     "qty": 200,
+     "qty_text": "two hundred dancers",
+     "chars": {},
+     "details": {
+      "wardrobe_note": "white kurtas"
+     },
+     "inferred": false
+    },
+    {
+     "department": "background",
+     "name": "DHOL PLAYERS",
+     "category": "musicians",
+     "match": [
+      "dhol"
+     ],
+     "qty": 6,
+     "qty_text": "Six dhol players",
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "background",
+     "name": "VILLAGERS",
+     "category": "villagers",
+     "match": [
+      "villager",
+      "crowd"
+     ],
+     "qty": null,
+     "qty_text": "A crowd of villagers",
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "TARA \u2014 GREEN GHAGRA",
+     "category": "dance",
+     "match": [
+      "ghagra"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "TARA": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "DANCERS \u2014 WHITE KURTAS",
+     "category": "dance",
+     "match": [
+      "kurta"
+     ],
+     "qty": 200,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "COLOURED POWDER ON FACES",
+     "category": "special",
+     "match": [
+      "powder"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "TARA": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "animals",
+     "name": "DECORATED WHITE HORSE",
+     "category": "horse",
+     "match": [
+      "horse"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "animals",
+     "name": "STRAY DOGS",
+     "category": "dog",
+     "match": [
+      "dog"
+     ],
+     "qty": null,
+     "qty_text": "Stray dogs",
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "SONG: RANG DE RE",
+     "category": "song",
+     "match": [
+      "rang de re",
+      "song"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "TARA": "singer"
+     },
+     "details": {
+      "playback": true,
+      "lip_sync": true,
+      "song_title": "RANG DE RE",
+      "choreography_needed": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "DHOL DRUMS",
+     "category": "instrument",
+     "match": [
+      "dhol",
+      "drum"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "COLOURED POWDER",
+     "category": "other",
+     "match": [
+      "powder"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "CAMERA CRANE",
+     "category": "camera_rig",
+     "match": [
+      "crane"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "CROWD MANAGEMENT FOR 200+ BACKGROUND",
+     "category": "crowd_management",
+     "match": [
+      "crowd"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "ANIMAL HANDLER / WELFARE",
+     "category": "animal_welfare",
+     "match": [
+      "animal",
+      "handler",
+      "wrangler"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  },
+  {
+   "seq": 3,
+   "number": "3",
+   "items": [
+    {
+     "department": "vehicles",
+     "name": "KHAN'S POLICE JEEP",
+     "category": "police_vehicle",
+     "match": [
+      "jeep"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "INSPECTOR KHAN": "owner"
+     },
+     "details": {
+      "moving": false,
+      "action": "parked"
+     },
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "KHAN'S REVOLVER",
+     "category": "weapon",
+     "match": [
+      "revolver"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "INSPECTOR KHAN": "user"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "HANDCUFFS",
+     "category": "other",
+     "match": [
+      "handcuff"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "user"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "PHONE",
+     "category": "phone",
+     "match": [
+      "phone"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "KHAN \u2014 KHAKI POLICE UNIFORM",
+     "category": "uniform",
+     "match": [
+      "khaki",
+      "uniform"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "INSPECTOR KHAN": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "RAGHAV \u2014 LEATHER JACKET",
+     "category": "everyday",
+     "match": [
+      "leather jacket",
+      "jacket"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "wearer"
+     },
+     "details": {
+      "state": "damp"
+     },
+     "inferred": false
+    },
+    {
+     "department": "background",
+     "name": "CONSTABLES",
+     "category": "police",
+     "match": [
+      "constable"
+     ],
+     "qty": 2,
+     "qty_text": "Two constables",
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "PHONE RINGS",
+     "category": "scripted_sound",
+     "match": [
+      "phone",
+      "ring"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "ARMOURER FOR WEAPON",
+     "category": "safety",
+     "match": [
+      "armourer",
+      "weapon"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  },
+  {
+   "seq": 4,
+   "number": "4",
+   "items": [
+    {
+     "department": "vehicles",
+     "name": "POLICE JEEPS",
+     "category": "police_vehicle",
+     "match": [
+      "jeep"
+     ],
+     "qty": 3,
+     "qty_text": "Three police jeeps",
+     "chars": {},
+     "details": {
+      "moving": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "BHIM \u2014 PROSTHETIC SCAR",
+     "category": "prosthetic",
+     "match": [
+      "scar"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "BHIM": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "RAGHAV \u2014 FOREHEAD CUT",
+     "category": "injury",
+     "match": [
+      "cut",
+      "forehead"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "wearer"
+     },
+     "details": {
+      "state": "fresh"
+     },
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "RAGHAV \u2014 SHIRT",
+     "category": "everyday",
+     "match": [
+      "shirt"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "wearer"
+     },
+     "details": {
+      "state": "bloodied"
+     },
+     "inferred": false
+    },
+    {
+     "department": "background",
+     "name": "BHIM'S MEN",
+     "category": "other",
+     "match": [
+      "men",
+      "henchmen"
+     ],
+     "qty": null,
+     "qty_text": "several of his men",
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "FIGHT ON SLOPE",
+     "category": "fight",
+     "match": [
+      "fight"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "performer",
+      "BHIM": "performer"
+     },
+     "details": {
+      "stunt_double_needed": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "FALL DOWN SLOPE",
+     "category": "fall",
+     "match": [
+      "fall"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "performer"
+     },
+     "details": {
+      "stunt_double_needed": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "FUEL DRUM EXPLOSION",
+     "category": "explosion",
+     "match": [
+      "explo",
+      "drum"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "action_effects",
+     "name": "GUNFIRE",
+     "category": "gunfire",
+     "match": [
+      "fire",
+      "shot"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "BHIM": "performer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "FUEL DRUM",
+     "category": "other",
+     "match": [
+      "drum"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "SIRENS",
+     "category": "scripted_sound",
+     "match": [
+      "siren"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "STUNT COORDINATOR",
+     "category": "safety",
+     "match": [
+      "stunt"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "SFX / PYROTECHNICS SUPERVISOR AND FIRE SAFETY",
+     "category": "safety",
+     "match": [
+      "pyro",
+      "sfx",
+      "fire",
+      "explosion"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  },
+  {
+   "seq": 5,
+   "number": "5",
+   "items": [
+    {
+     "department": "props",
+     "name": "HEART MONITOR",
+     "category": "medical",
+     "match": [
+      "monitor"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "IV DRIP",
+     "category": "medical",
+     "match": [
+      "drip"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "user"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "RAGHAV \u2014 FOREHEAD CUT",
+     "category": "injury",
+     "match": [
+      "cut",
+      "forehead",
+      "bandage"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "wearer"
+     },
+     "details": {
+      "state": "bandaged"
+     },
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "LULLABY (UNACCOMPANIED)",
+     "category": "song",
+     "match": [
+      "lullaby"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "TARA": "singer"
+     },
+     "details": {
+      "playback": false,
+      "live_recording": true
+     },
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "HEART MONITOR BEEPS",
+     "category": "scripted_sound",
+     "match": [
+      "beep",
+      "monitor"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    }
+   ]
+  },
+  {
+   "seq": 6,
+   "number": "6",
+   "items": [
+    {
+     "department": "vehicles",
+     "name": "VINTAGE AMBASSADOR",
+     "category": "car",
+     "match": [
+      "ambassador"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {
+      "moving": false,
+      "action": "parked",
+      "period": "1975"
+     },
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "DEV \u2014 1970S BELL-BOTTOMS AND WIDE-COLLARED SHIRT",
+     "category": "period",
+     "match": [
+      "bell-bottom",
+      "bell bottom"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "DEV": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "BRASS LAMP",
+     "category": "religious",
+     "match": [
+      "lamp"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "DEV": "user"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "animals",
+     "name": "COW",
+     "category": "cow",
+     "match": [
+      "cow"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "TEMPLE BELLS",
+     "category": "scripted_sound",
+     "match": [
+      "bell"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "VOICEOVER \u2014 RAGHAV",
+     "category": "voiceover",
+     "match": [
+      "voiceover",
+      "v.o"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {
+      "RAGHAV": "speaker"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "ANIMAL HANDLER / WELFARE",
+     "category": "animal_welfare",
+     "match": [
+      "animal",
+      "handler",
+      "wrangler"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  },
+  {
+   "seq": 7,
+   "number": "7",
+   "items": [
+    {
+     "department": "makeup_hair",
+     "name": "BHIM \u2014 PRIEST DISGUISE FAKE BEARD",
+     "category": "disguise",
+     "match": [
+      "beard",
+      "disguise"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "BHIM": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "costumes",
+     "name": "BHIM \u2014 SAFFRON PRIEST ROBES",
+     "category": "disguise",
+     "match": [
+      "saffron",
+      "robe"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "BHIM": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "TARA \u2014 LONG BRAID CUT SHORT",
+     "category": "hairstyle",
+     "match": [
+      "braid",
+      "hair"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "TARA": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "SCISSORS",
+     "category": "tool",
+     "match": [
+      "scissors"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "TARA": "user"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "props",
+     "name": "MIRROR",
+     "category": "other",
+     "match": [
+      "mirror"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "sound_music",
+     "name": "GUNSHOT (OFF SCREEN)",
+     "category": "scripted_sound",
+     "match": [
+      "gunshot"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    }
+   ]
+  },
+  {
+   "seq": 8,
+   "number": "8",
+   "items": [
+    {
+     "department": "vehicles",
+     "name": "RAGHAV'S ROYAL ENFIELD",
+     "category": "motorcycle",
+     "match": [
+      "enfield",
+      "motorcycle"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {},
+     "details": {
+      "moving": false,
+      "action": "parked",
+      "condition": "rusting"
+     },
+     "inferred": false
+    },
+    {
+     "department": "makeup_hair",
+     "name": "OLD RAGHAV \u2014 AGEING MAKEUP",
+     "category": "ageing",
+     "match": [
+      "wrinkle",
+      "grey",
+      "ageing"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "OLD RAGHAV": "wearer"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "animals",
+     "name": "GOLDEN RETRIEVER",
+     "category": "dog",
+     "match": [
+      "retriever",
+      "dog"
+     ],
+     "qty": 1,
+     "qty_text": null,
+     "chars": {
+      "OLD RAGHAV": "owner"
+     },
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "DRONE",
+     "category": "camera_rig",
+     "match": [
+      "drone"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "HOUSE SET \u2014 FULL REPLICA BUILT ON BACKLOT, BURNT",
+     "category": "set_construction",
+     "match": [
+      "replica",
+      "set",
+      "backlot"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": false
+    },
+    {
+     "department": "production",
+     "name": "ANIMAL HANDLER / WELFARE",
+     "category": "animal_welfare",
+     "match": [
+      "animal",
+      "handler",
+      "wrangler"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    }
+   ]
+  }
+ ],
+ "identity_checks": {
+  "KHAN'S POLICE JEEP": {
+   "scenes": [
+    "1",
+    "3"
+   ],
+   "note": "ONE recurring jeep"
+  },
+  "POLICE JEEPS": {
+   "scenes": [
+    "4"
+   ],
+   "qty": 3,
+   "note": "three jeeps together"
+  },
+  "RAGHAV'S ROYAL ENFIELD": {
+   "scenes": [
+    "1",
+    "8"
+   ]
+  }
+ },
+ "queries": [
+  {
+   "ask": "every exterior night scene with the hero, a motorcycle and rain",
+   "expect": [
+    "1"
+   ]
+  }
+ ]
+}

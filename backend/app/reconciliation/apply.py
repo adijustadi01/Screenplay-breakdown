@@ -180,8 +180,32 @@ def sc_project(session: Session, sc: Scene) -> int:
     return session.get(ScriptVersion, sc.script_version_id).project_id
 
 
+def merge_item(session: Session, from_id: int, into_id: int, actor: str) -> dict[str, Any]:
+    from ..models import BreakdownItem, BreakdownOccurrence
+    src, dst = session.get(BreakdownItem, from_id), session.get(BreakdownItem, into_id)
+    if src is None or dst is None or src.id == dst.id or src.status == EntityStatus.MERGED:
+        raise ProposalError("nothing to merge")
+    before = snapshot(src)
+    moved = []
+    dst_scenes = {o.scene_id: o for o in session.scalars(select(BreakdownOccurrence).where(
+        BreakdownOccurrence.item_id == dst.id))}
+    for o in session.scalars(select(BreakdownOccurrence).where(BreakdownOccurrence.item_id == src.id)).all():
+        if o.scene_id in dst_scenes:
+            # Both names in one scene: leave this row on the merged-away item; facts resolve
+            # merged items to the survivor, so the scene still shows a single item.
+            continue
+        moved.append(o.id)
+        o.item_id = dst.id
+    src.status, src.merged_into_id = EntityStatus.MERGED, dst.id
+    session.flush()
+    log_event(session, src.project_id, src, "merge", actor, before, note=f"merged into {dst.name}")
+    return {"type": "merge_item", "from_id": src.id, "into_id": dst.id, "moved": moved}
+
+
 def apply_proposal(session: Session, proposal: dict, actor: str) -> dict[str, Any]:
     act = proposal.get("action")
+    if act == "merge_item":
+        return merge_item(session, proposal["from_id"], proposal["into_id"], actor)
     if act == "merge_character":
         return merge_character(session, proposal["from_id"], proposal["into_id"], actor)
     if act == "casting_variant":
@@ -241,6 +265,16 @@ def undo(session: Session, record: dict[str, Any], actor: str) -> None:
             ch = session.get(Location, cid)
             if ch is not None:
                 ch.parent_id = src.id
+        src.status, src.merged_into_id = EntityStatus.ACTIVE, None
+        session.flush()
+        log_event(session, src.project_id, src, "unmerge", actor)
+    elif t == "merge_item":
+        from ..models import BreakdownItem, BreakdownOccurrence
+        src = session.get(BreakdownItem, record["from_id"])
+        for oid in record["moved"]:
+            o = session.get(BreakdownOccurrence, oid)
+            if o is not None:
+                o.item_id = src.id
         src.status, src.merged_into_id = EntityStatus.ACTIVE, None
         session.flush()
         log_event(session, src.project_id, src, "unmerge", actor)

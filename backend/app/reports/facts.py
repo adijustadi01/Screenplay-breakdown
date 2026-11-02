@@ -58,12 +58,34 @@ class AppearanceFact:
 
 
 @dataclass
+class OccurrenceFact:
+    """A department item in one scene (Stage 2)."""
+
+    id: int
+    scene_id: int
+    item_id: int
+    department: str
+    category: str | None
+    name: str
+    owner_id: int | None
+    quantity_min: int | None
+    quantity_max: int | None
+    quantity_raw: str | None
+    details: dict
+    inferred: bool
+    characters: list[tuple[int, str]]   # (character_id, role)
+    needs_review: bool
+    description: str | None
+
+
+@dataclass
 class Facts:
     scenes: list[SceneFact]
     appearances: list[AppearanceFact]
     characters: dict[int, Character]
     locations: dict[int, Location]
     casting_roles: dict[int, CastingRole]
+    occurrences: list[OccurrenceFact] = field(default_factory=list)
     scene_by_id: dict[int, SceneFact] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -151,5 +173,37 @@ def load_facts(session: Session, version_id: int) -> Facts:
             ))
     active_chars = {cid: c for cid, c in chars_all.items() if c.status == EntityStatus.ACTIVE}
     active_locs = {lid: loc for lid, loc in locs_all.items() if loc.status == EntityStatus.ACTIVE}
-    return Facts(sfacts, afacts, active_chars, active_locs, roles)
+    return Facts(sfacts, afacts, active_chars, active_locs, roles,
+                 _load_occurrences(session, project_id, scene_ids, resolve_char))
+
+
+def _load_occurrences(session, project_id, scene_ids, resolve_char) -> list[OccurrenceFact]:
+    from ..models import BreakdownItem, BreakdownOccurrence, OccurrenceCharacter
+    if not scene_ids:
+        return []
+    items = {i.id: i for i in session.scalars(select(BreakdownItem).where(BreakdownItem.project_id == project_id))}
+
+    def resolve_item(iid):
+        seen = set()
+        while items[iid].status == EntityStatus.MERGED and items[iid].merged_into_id and iid not in seen:
+            seen.add(iid)
+            iid = items[iid].merged_into_id
+        return iid
+    occs = session.scalars(select(BreakdownOccurrence).where(
+        BreakdownOccurrence.scene_id.in_(scene_ids), BreakdownOccurrence.review_status != ReviewStatus.REJECTED)).all()
+    links: dict[int, list] = {}
+    if occs:
+        for oc in session.scalars(select(OccurrenceCharacter).where(
+                OccurrenceCharacter.occurrence_id.in_([o.id for o in occs]))):
+            links.setdefault(oc.occurrence_id, []).append((resolve_char(oc.character_id), oc.role))
+    out = []
+    for o in occs:
+        it = items[resolve_item(o.item_id)]
+        out.append(OccurrenceFact(
+            id=o.id, scene_id=o.scene_id, item_id=it.id, department=o.department.value, category=it.category,
+            name=it.name, owner_id=resolve_char(it.character_id) if it.character_id else None,
+            quantity_min=o.quantity_min, quantity_max=o.quantity_max, quantity_raw=o.quantity_raw,
+            details=o.details or {}, inferred=o.is_inferred, characters=links.get(o.id, []),
+            needs_review=o.needs_review and o.review_status == ReviewStatus.UNREVIEWED, description=o.description))
+    return out
 

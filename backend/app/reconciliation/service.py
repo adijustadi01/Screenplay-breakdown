@@ -153,6 +153,36 @@ def propose(session: Session, version_id: int) -> dict[str, int]:
                     0.6, ("locations", loc.id))
                 break
 
+    # ------------------------------------------------------------ department items (Stage 2)
+    from ..models import BreakdownItem, BreakdownOccurrence
+    items = session.scalars(select(BreakdownItem).where(
+        BreakdownItem.project_id == pid, BreakdownItem.status == EntityStatus.ACTIVE)).all()
+    icount = Counter(o.item_id for o in session.scalars(select(BreakdownOccurrence)))
+    by_dept: dict = {}
+    for it in items:
+        by_dept.setdefault(it.department, []).append(it)
+    for dept, group in by_dept.items():
+        for i, a in enumerate(group):
+            for b in group[i + 1:]:
+                ka, kb = loose_key(a.name), loose_key(b.name)
+                if not ka or not kb or _digits(ka) != _digits(kb):
+                    continue
+                if a.character_id and b.character_id and a.character_id != b.character_id:
+                    continue        # two different people's things
+                ta, tb = set(a.name.split()), set(b.name.split())
+                ratio = 1.0 if ka == kb else difflib.SequenceMatcher(None, ka, kb).ratio()
+                subset = (ta < tb or tb < ta) and min(len(ta), len(tb)) >= 1 and a.category == b.category
+                if ratio < FUZZY_THRESHOLD and not subset:
+                    continue
+                small, big = sorted((a, b), key=lambda x: (icount.get(x.id, 0), len(x.name)))
+                why = "spelling" if ratio >= FUZZY_THRESHOLD else "shorter name"
+                add(f"merge_item:{small.id}:{big.id}", "item_variant",
+                    f"{dept.value.replace('_', ' ').title()}: '{small.name}' ({icount.get(small.id, 0)} scene(s)) may be "
+                    f"the same as '{big.name}' ({icount.get(big.id, 0)} scene(s)) ({why}). Accept to merge — "
+                    f"only if it is the SAME object, not just the same kind.",
+                    {"action": "merge_item", "from_id": small.id, "into_id": big.id},
+                    ratio if ratio >= FUZZY_THRESHOLD else 0.55, ("breakdown_items", small.id))
+
     session.flush()
     return dict(made)
 

@@ -165,6 +165,7 @@ class ReviewStatus(str, enum.Enum):
 class RunKind(str, enum.Enum):
     IMPORT = "import"
     SCENE_EXTRACTION = "scene_extraction"
+    DEPARTMENT_EXTRACTION = "department_extraction"
     RECONCILIATION = "reconciliation"
 
 
@@ -199,3 +200,17 @@ class Resolution(str, enum.Enum):
     REJECTED = "rejected"
     PROPOSAL_ACCEPTED = "proposal_accepted"
     PROPOSAL_DECLINED = "proposal_declined"
+
+
+class Department(str, enum.Enum):
+    """Stage 2 departmental breakdowns. Each has its own module in app/departments/."""
+
+    VEHICLES = "vehicles"
+    PROPS = "props"
+    COSTUMES = "costumes"
+    MAKEUP_HAIR = "makeup_hair"
+    BACKGROUND = "background"
+    ANIMALS = "animals"
+    ACTION_EFFECTS = "action_effects"
+    SOUND_MUSIC = "sound_music"
+    PRODUCTION = "production"

@@ -179,6 +179,66 @@ def _format_report(name, r) -> str:
     return "\n".join(out)
 
 
+def cmd_departments(a) -> int:
+    from .departments import registry
+    from .departments.service import run_department_extraction
+    s = _session(a.db)
+    specs = registry.get(a.departments.split(",") if a.departments else None)
+    if a.extractor == "claude":
+        from .departments.claude_extractor import DepartmentClaudeExtractor
+        ex = DepartmentClaudeExtractor(specs, model=a.model, effort=a.effort)
+    else:
+        from .departments.heuristic import DepartmentHeuristicExtractor
+        ex = DepartmentHeuristicExtractor(specs)
+
+    def progress(done, total):
+        print(f"\r  {done}/{total} scenes", end="", flush=True)
+
+    run = run_department_extraction(s, a.version, ex, workers=a.workers, progress=progress)
+    s.commit()
+    print(f"\nRun {run.id}: {run.status.value} — departments: {', '.join(x.key.value for x in specs)}")
+    return 0 if run.status.value != "failed" else 1
+
+
+def cmd_dept_report(a) -> int:
+    from .departments.reports import run_department_report
+    s = _session(a.db)
+    r = run_department_report(s, a.version, a.name, time_mode=a.time)
+    if a.json:
+        print(json.dumps(r, indent=2))
+        return 0
+    if a.name == "continuity":
+        for c in r["characters"]:
+            print(f"{c['name']} — {c['changes']} change(s)")
+            for t in c["timeline"]:
+                mark = "*" if t["changed"] else " "
+                ents = "; ".join(f"{e['item']}{' [' + e['state'] + ']' if e['state'] else ''}" for e in t["entries"]) \
+                    or "(nothing recorded)"
+                print(f"   {mark} sc {t['scene']:>4} {t['time']:<10} {ents}")
+        return 0
+    peak = r["peak_units_in_one_scene"]
+    print(f"{r['label'].upper()}: {r['unique_items']} unique {r['item_noun']}(s) in {_c(r['scenes'])} scene(s); "
+          f"peak {peak['count'] if peak else 0} unit(s) at once (sc {peak['scene'] if peak else '-'}); "
+          f"{_c(r['scenes_with_unknown_quantity'])} scene(s) with unknown quantity; "
+          f"{_c(r['inferred'])} inferred; {_c(r['needs_review'])} to review")
+    for it in r["items"]:
+        chars = ", ".join(f"{c['name']}({c['role']}) {c['count']}" for c in it["characters"][:6])
+        extra = {k: v for k, v in it.items() if k in ("drivers", "actions", "state_changes", "species", "practical",
+                                                      "vfx_candidate", "playback", "headcount")}
+        print(f"  {it['name'][:40]:40} {it['category'] or '':16} scenes {_c(it['scenes']):>3}  "
+              f"max/scene {it['max_in_one_scene'] if it['max_in_one_scene'] is not None else '?':>4}  "
+              f"from sc {it['first_scene']:>4}  {chars}  {extra if extra else ''}")
+    return 0
+
+
+def cmd_dept_accuracy(a) -> int:
+    from .departments.evaluate import evaluate_departments, format_dept_accuracy
+    s = _session(a.db)
+    print(format_dept_accuracy(evaluate_departments(s, a.version, a.truth,
+                                                    a.departments.split(",") if a.departments else None)))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli", description="Screenplay breakdown")
     ap.add_argument("--db", help="database URL (default sqlite:///./breakdown.db or $DATABASE_URL)")
@@ -217,6 +277,25 @@ def main(argv=None) -> int:
     p.add_argument("--time", choices=["as_written", "effective"], default="as_written")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_report)
+    p = sub.add_parser("departments", help="Stage 2: departmental breakdown extraction")
+    p.add_argument("version", type=int)
+    p.add_argument("--departments", help="comma-separated, e.g. vehicles,props (default: all)")
+    p.add_argument("--extractor", choices=["claude", "heuristic"], default="claude")
+    p.add_argument("--model")
+    p.add_argument("--effort")
+    p.add_argument("--workers", type=int, default=4)
+    p.set_defaults(fn=cmd_departments)
+    p = sub.add_parser("dept-report", help="department report: vehicles | props | ... | continuity")
+    p.add_argument("version", type=int)
+    p.add_argument("name")
+    p.add_argument("--time", choices=["as_written", "effective"], default="as_written")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_dept_report)
+    p = sub.add_parser("dept-accuracy", help="score department items against a ground-truth JSON")
+    p.add_argument("version", type=int)
+    p.add_argument("truth")
+    p.add_argument("--departments")
+    p.set_defaults(fn=cmd_dept_accuracy)
     a = ap.parse_args(argv)
     return a.fn(a)
 

@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from ..db.base import utcnow
 from ..models import (
     Appearance,
+    BreakdownItem,
+    BreakdownOccurrence,
     Character,
     Location,
     Page,
@@ -41,7 +43,8 @@ from ..models.enums import (
 from ..reconciliation.apply import ProposalError, apply_proposal, undo
 from .audit import log_event, snapshot
 
-MODELS = {"appearances": Appearance, "scenes": Scene, "scene_locations": SceneLocation,
+MODELS = {"breakdown_occurrences": BreakdownOccurrence, "breakdown_items": BreakdownItem,
+          "appearances": Appearance, "scenes": Scene, "scene_locations": SceneLocation,
           "characters": Character, "locations": Location, "script_elements": ScriptElement,
           "pages": Page, "script_versions": ScriptVersion}
 
@@ -56,8 +59,12 @@ EDITABLE: dict[str, dict[str, Any]] = {
                    "quantity_min": int, "quantity_max": int, "quantity_raw": str},
     "locations": {"name": str, "parent_id": int, "kind": LocationKind, "description": str},
     "script_elements": {"element_type": ElementType},
+    "breakdown_occurrences": {"quantity_min": int, "quantity_max": int, "quantity_raw": str, "description": str,
+                              "is_inferred": bool, "details": dict, "item_id": int},
+    "breakdown_items": {"name": str, "category": str, "description": str, "character_id": int, "attributes": dict},
 }
-HAS_PROVENANCE = {"appearances", "scenes", "scene_locations", "characters", "locations"}
+HAS_PROVENANCE = {"appearances", "scenes", "scene_locations", "characters", "locations",
+                  "breakdown_occurrences", "breakdown_items"}
 SEVERITY_ORDER = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.INFO: 2}
 
 
@@ -81,7 +88,7 @@ def _coerce(table: str, field: str, value):
 def _project_of(session: Session, table: str, obj) -> int:
     if hasattr(obj, "project_id"):
         return obj.project_id
-    if table == "appearances" or table == "scene_locations":
+    if table in ("appearances", "scene_locations", "breakdown_occurrences"):
         obj = session.get(Scene, obj.scene_id)
         table = "scenes"
     if table in ("scenes", "pages", "script_elements"):
@@ -326,6 +333,9 @@ def item_detail(session: Session, item_id: int) -> dict[str, Any]:
                 entity["character_name"] = session.get(Character, obj.character_id).canonical_name
             if i.entity_table == "scene_locations":
                 entity["location_name"] = session.get(Location, obj.location_id).name
+            if i.entity_table == "breakdown_occurrences":
+                it = session.get(BreakdownItem, obj.item_id)
+                entity["item_name"], entity["item_category"] = it.name, it.category
     d["entity"] = entity
     d["source"] = source_passage(session, i)
     return d
@@ -336,8 +346,8 @@ def source_passage(session: Session, i: ReviewItem) -> dict[str, Any] | None:
     highlight = set()
     if i.element_id:
         highlight.add(i.element_id)
-    if i.entity_table == "appearances" and i.entity_id:
-        a = session.get(Appearance, i.entity_id)
+    if i.entity_table in ("appearances", "breakdown_occurrences") and i.entity_id:
+        a = session.get(Appearance if i.entity_table == "appearances" else BreakdownOccurrence, i.entity_id)
         if a and a.source_element_start_id:
             highlight.update(range(a.source_element_start_id, (a.source_element_end_id or a.source_element_start_id) + 1))
     if i.scene_id:
