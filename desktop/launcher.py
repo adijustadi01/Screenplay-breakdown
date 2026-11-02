@@ -1,8 +1,9 @@
 """Desktop launcher for Screenplay Breakdown (used by the Windows installer).
 
 Starts the local server on 127.0.0.1, keeps all data in the user's own folder
-(%APPDATA%\\ScreenplayBreakdown on Windows), and opens the app in the browser.
-Close the console window to quit.
+(%APPDATA%\\ScreenplayBreakdown on Windows), and opens the app in ITS OWN WINDOW
+(Microsoft Edge / Chrome "app mode": no tabs, no address bar). Closing that window quits.
+If neither is found it falls back to the default browser (quit from the app's Quit button).
 
     ScreenplayBreakdown.exe            run the app
     ScreenplayBreakdown.exe --smoke    self-test (used by the build): start, import a sample, check, exit
@@ -11,7 +12,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -62,6 +65,47 @@ def configure_environment(data: Path) -> None:
                 os.environ["ANTHROPIC_API_KEY"] = key
         except (OSError, ValueError):
             pass
+
+
+def app_window_browser() -> str | None:
+    """Edge (on every Windows 10/11) or Chrome, used in --app mode for a standalone window."""
+    if os.environ.get("SB_APP_BROWSER"):
+        return os.environ["SB_APP_BROWSER"]
+    candidates = []
+    for env in ("PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA"):
+        root = os.environ.get(env)
+        if root:
+            candidates += [Path(root) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+                           Path(root) / "Google" / "Chrome" / "Application" / "chrome.exe"]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    for name in ("msedge", "microsoft-edge", "google-chrome", "chromium", "chromium-browser"):
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+def open_app_window(url: str, data: Path) -> subprocess.Popen | None:
+    exe = app_window_browser()
+    if not exe:
+        return None
+    profile = data / "window-profile"          # own profile: separate window that we can wait on
+    args = [exe, f"--app={url}", f"--user-data-dir={profile}", "--no-first-run",
+            "--no-default-browser-check", "--disable-features=Translate", "--window-size=1440,920"]
+    try:
+        return subprocess.Popen(args)
+    except OSError:
+        return None
+
+
+def log_to_file(data: Path) -> None:
+    """The windowed app has no console: send output to a log file instead."""
+    if sys.stdout is None or sys.stderr is None:
+        fh = open(data / "app.log", "a", encoding="utf-8", buffering=1)  # noqa: SIM115
+        sys.stdout = sys.stdout or fh
+        sys.stderr = sys.stderr or fh
 
 
 def port_free(port: int) -> bool:
@@ -152,27 +196,44 @@ def smoke(port: int) -> int:
 
 
 def main() -> int:
-    data = Path(tempfile.mkdtemp()) if "--smoke" in sys.argv else data_dir()
+    smoke_mode = "--smoke" in sys.argv
+    data = Path(tempfile.mkdtemp()) if smoke_mode else data_dir()
+    log_to_file(data)
     configure_environment(data)
-    if "--smoke" not in sys.argv and our_app_running(PREFERRED_PORT):
-        webbrowser.open(f"http://127.0.0.1:{PREFERRED_PORT}/")       # already running: just open it
+    os.environ["SB_DESKTOP"] = "1"
+    if not smoke_mode and our_app_running(PREFERRED_PORT):
+        url = f"http://127.0.0.1:{PREFERRED_PORT}/"            # already running: just show a window
+        if open_app_window(url, data) is None:
+            webbrowser.open(url)
         return 0
     port = pick_port()
-    _server, thread = start_server(port)
-    if "--smoke" in sys.argv:
+    server, thread = start_server(port)
+    if smoke_mode:
+        out = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--smoke-out=")), None)
         try:
-            return smoke(port)
+            code = smoke(port)
+            msg = "SMOKE OK"
         except Exception as exc:  # noqa: BLE001
-            print(f"SMOKE FAILED: {exc!r}")
-            return 1
+            code, msg = 1, f"SMOKE FAILED: {exc!r}"
+        print(msg)
+        if out:
+            Path(out).write_text(msg, encoding="utf-8")
+        return code
     url = f"http://127.0.0.1:{port}/"
-    print("=" * 64)
-    print("  Screenplay Breakdown is running.")
-    print(f"  Open {url} in your browser (it should open by itself).")
-    print(f"  Your projects are stored in {data}")
-    print("  Close this window to quit.")
-    print("=" * 64)
-    webbrowser.open(url)
+    print(f"Screenplay Breakdown running at {url}; projects in {data}")
+    window = open_app_window(url, data)
+    if window is not None:
+        opened = time.time()
+        while thread.is_alive() and window.poll() is None:
+            time.sleep(0.5)
+        if time.time() - opened > 8:
+            # The user closed our window: quit.
+            server.should_exit = True
+            thread.join(5)
+            return 0
+        # The browser handed the window to another process and returned at once, so we
+        # cannot tell when it closes: keep running until the app's Quit button is used.
+    webbrowser.open(url)           # fallback: default browser; quit with the app's Quit button
     try:
         while thread.is_alive():
             thread.join(1)

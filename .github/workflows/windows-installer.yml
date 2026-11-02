@@ -54,7 +54,11 @@ jobs:
         run: pyinstaller desktop/screenplay_breakdown.spec --noconfirm
 
       - name: Self-test the built app
-        run: dist\ScreenplayBreakdown\ScreenplayBreakdown.exe --smoke
+        # It is a windowed app (no console), so wait for it and read its result file.
+        run: |
+          $p = Start-Process -FilePath "dist\ScreenplayBreakdown\ScreenplayBreakdown.exe" -ArgumentList "--smoke","--smoke-out=$env:RUNNER_TEMP\smoke.txt" -Wait -PassThru
+          Get-Content "$env:RUNNER_TEMP\smoke.txt"
+          if ($p.ExitCode -ne 0) { exit 1 }
 
       - name: Build the installer
         run: |

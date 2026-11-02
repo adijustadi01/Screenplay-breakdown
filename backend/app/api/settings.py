@@ -21,7 +21,8 @@ def _config_path() -> Path:
 @router.get("/settings")
 def get_settings() -> dict:
     tess = os.environ.get("TESSERACT_CMD") or shutil.which("tesseract")
-    return {"has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
+    return {"desktop": os.environ.get("SB_DESKTOP") == "1",
+            "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
             "ocr_available": bool(tess and Path(tess).exists() if os.environ.get("TESSERACT_CMD") else tess),
             "data_dir": str(_config_path().parent)}
 
@@ -49,3 +50,13 @@ def save_settings(body: SettingsIn) -> dict:
         os.environ.pop("ANTHROPIC_API_KEY", None)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return get_settings()
+
+
+@router.post("/quit")
+def quit_app() -> dict:
+    """Desktop app only: stop the local server (used when there is no app window to close)."""
+    if os.environ.get("SB_DESKTOP") != "1":
+        return {"ok": False}
+    import threading
+    threading.Timer(0.5, lambda: os._exit(0)).start()
+    return {"ok": True}

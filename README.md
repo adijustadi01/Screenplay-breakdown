@@ -48,8 +48,9 @@ You can install this as a normal Windows program instead of using the developer 
 2. **Run `ScreenplayBreakdown-Setup.exe`.** No administrator rights are needed. The installer is
    not code-signed, so Windows SmartScreen may say "Windows protected your PC": click **More info →
    Run anyway**.
-3. **Start Screenplay Breakdown** from the Start menu or the desktop shortcut. A small console
-   window opens and the app opens in your browser. Close the console window to quit.
+3. **Start Screenplay Breakdown** from the Start menu or the desktop shortcut. It opens in its
+   own window, using Microsoft Edge's app mode (no tabs or address bar). Close the window to quit,
+   or use the **Quit** button at the top right.
 4. **Enter your Anthropic API key** on the Import tab to use Claude extraction. It is stored only on
    your computer.
 

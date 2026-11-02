@@ -36,6 +36,6 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ScreenplayBreakdown", console=True,
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ScreenplayBreakdown", console=False,
           icon=os.environ.get("SB_ICON") or None)
 coll = COLLECT(exe, a.binaries, a.datas, name="ScreenplayBreakdown")

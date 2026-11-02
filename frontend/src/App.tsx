@@ -17,6 +17,8 @@ export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sel, setSel] = useState<{ p: number; v: number } | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => { api.get<any>("/api/settings").then((s) => setDesktop(!!s.desktop)).catch(() => {}); }, []);
 
   const refresh = useCallback(() => {
     api.get<Project[]>("/api/projects").then((ps) => {
@@ -48,6 +50,9 @@ export function App() {
             {!sel && <option value="">—</option>}
             {versions.map(({ p, v }) => <option key={v.id} value={`${p.id}:${v.id}`}>{p.title} — {v.label || v.file} (v{v.id}, {v.status})</option>)}
           </select>
+          {desktop && <button className="btn" title="Close Screenplay Breakdown" onClick={() => {
+            if (confirm("Quit Screenplay Breakdown? Your work is saved.")) api.post("/api/quit").finally(() => window.close());
+          }}>Quit</button>}
         </div>
       </header>
       <main>
