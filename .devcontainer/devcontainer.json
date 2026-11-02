@@ -11,7 +11,7 @@
   },
   "forwardPorts": [8000],
   "portsAttributes": {
-    "8000": { "label": "Screenplay Breakdown", "onAutoForward": "openBrowser" }
+    "8000": { "label": "Screenplay Breakdown", "onAutoForward": "openPreview" }
   },
   "customizations": {
     "codespaces": { "openFiles": [".devcontainer/HOW-TO-USE.md"] }
