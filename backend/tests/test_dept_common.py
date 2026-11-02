@@ -44,6 +44,8 @@ def test_flagged_items_reach_the_review_queue(db, project, dept):
 
 @pytest.mark.parametrize("dept", DEPTS)
 def test_offline_baseline(db, project, dept):
-    v = dept_pipeline(db, project, [dept], DepartmentHeuristicExtractor(registry.get([dept])))
+    # Production's inferred rules read the other departments, so run them all for it.
+    run = DEPTS if dept == "production" else [dept]
+    v = dept_pipeline(db, project, run, DepartmentHeuristicExtractor(registry.get(run)))
     r = evaluate_departments(db, v.id, DEPT_TRUTH_PATH, [dept])["departments"][dept]
     assert (r["recall"] or 0) >= OFFLINE_MIN_RECALL[dept], r

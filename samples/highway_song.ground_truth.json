@@ -169,6 +169,19 @@
      "chars": {},
      "details": {},
      "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "STUNT COORDINATOR",
+     "category": "safety",
+     "match": [
+      "stunt"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
     }
    ]
   },
@@ -350,7 +363,7 @@
     },
     {
      "department": "production",
-     "name": "CROWD MANAGEMENT FOR 200+ BACKGROUND",
+     "name": "CROWD MANAGEMENT",
      "category": "crowd_management",
      "match": [
       "crowd"
@@ -363,12 +376,26 @@
     },
     {
      "department": "production",
-     "name": "ANIMAL HANDLER / WELFARE",
+     "name": "ANIMAL HANDLER / WELFARE OFFICER",
      "category": "animal_welfare",
      "match": [
       "animal",
       "handler",
       "wrangler"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "CHOREOGRAPHER AND PLAYBACK SYSTEM",
+     "category": "special_equipment",
+     "match": [
+      "choreograph",
+      "playback"
      ],
      "qty": null,
      "qty_text": null,
@@ -506,7 +533,7 @@
     },
     {
      "department": "production",
-     "name": "ARMOURER FOR WEAPON",
+     "name": "ARMOURER",
      "category": "safety",
      "match": [
       "armourer",
@@ -722,6 +749,19 @@
      "chars": {},
      "details": {},
      "inferred": true
+    },
+    {
+     "department": "production",
+     "name": "ARMOURER",
+     "category": "safety",
+     "match": [
+      "armourer"
+     ],
+     "qty": null,
+     "qty_text": null,
+     "chars": {},
+     "details": {},
+     "inferred": true
     }
    ]
   },
@@ -906,7 +946,7 @@
     },
     {
      "department": "production",
-     "name": "ANIMAL HANDLER / WELFARE",
+     "name": "ANIMAL HANDLER / WELFARE OFFICER",
      "category": "animal_welfare",
      "match": [
       "animal",
@@ -1101,7 +1141,7 @@
     },
     {
      "department": "production",
-     "name": "ANIMAL HANDLER / WELFARE",
+     "name": "ANIMAL HANDLER / WELFARE OFFICER",
      "category": "animal_welfare",
      "match": [
       "animal",

@@ -71,6 +71,9 @@ class DepartmentSpec:
     owner_roles: tuple[str, ...] = ()
     # Offline rules: name items after the character involved ("TARA — DUPATTA").
     name_with_holder: bool = False
+    # Offline rules: categories whose items are named by the category ("RAIN", "FIGHT"), so
+    # several verbs describing one event become one item.
+    offline_category_names: tuple[str, ...] = ()
     # Offline rules: details readable from the sentence (e.g. "soaked" -> state=wet).
     offline_details: Callable[[str], dict[str, Any]] | None = None
     # Extra review reasons for one item in one scene (department judgement in code).

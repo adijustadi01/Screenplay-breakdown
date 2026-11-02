@@ -7,6 +7,8 @@ transport department must have on set at once.
 """
 from __future__ import annotations
 
+import re
+
 from ..models.enums import Department
 from .base import DepartmentSpec, DetailField, ItemOut, SceneContext
 
@@ -22,6 +24,21 @@ def _review(item: ItemOut, ctx: SceneContext) -> list[str]:
         if item.quantity_max in (None, 1):
             reasons.append("driver_not_identified")
     return reasons
+
+
+_MOVING = re.compile(r"\b(rides?|riding|drives?|driving|speeds?|races?|chases?|gives chase|screech\w*|crawls?|"
+                     r"swerves?|pulls? (?:up|in|out)|arrives?|roars?)\b", re.I)
+_PARKED = re.compile(r"\b(parked|stands? rusting|rusting|abandoned|stationary)\b", re.I)
+
+
+def _offline(sentence: str) -> dict:
+    if _PARKED.search(sentence):
+        return {"moving": False, "action": "parked"}
+    if re.search(r"\bchase\b", sentence, re.I):
+        return {"moving": True, "action": "chase"}
+    if _MOVING.search(sentence):
+        return {"moving": True, "action": "driving"}
+    return {}
 
 
 def _extra(row: dict, occs: list) -> dict:
@@ -70,6 +87,7 @@ parked in frame that the action refers to. Not vehicles only mentioned in dialog
         "bicycle": ("bicycle", "cycle"),
         "boat": ("boat",),
     },
+    offline_details=_offline,
     review=_review,
     report_extra=_extra,
 )

@@ -234,9 +234,14 @@ def apply_departments(ctx: _Ctx, scene: Scene, sc: SceneContext, result: dict[st
     locked_items = _clear(ctx, scene)
     norm_scene = _norm_text(sc.text)
     by_dept: dict[Department, list[ItemOut]] = {sp.key: list(result.get(sp.key.value, [])) for sp in ctx.specs}
+    # Rules may read other departments' facts for this scene: this run's results, else the stored ones.
+    view = dict(_stored_items(ctx, scene, exclude={sp.key for sp in ctx.specs}))
+    view.update(by_dept)
     for sp in ctx.specs:                       # deterministic items derived in code
         if sp.derive:
-            by_dept[sp.key].extend(sp.derive(sc, by_dept))
+            derived = sp.derive(sc, view)
+            by_dept[sp.key].extend(derived)
+            view[sp.key] = by_dept[sp.key]
     on_set = sc.present | sc.voice_only
     for sp in ctx.specs:
         merged: dict[str, tuple[ItemOut, list[str]]] = {}
@@ -324,6 +329,23 @@ def apply_departments(ctx: _Ctx, scene: Scene, sc: SceneContext, result: dict[st
                     message=msg[:2000], entity_table="breakdown_occurrences", entity_id=occ.id,
                     scene_id=scene.id, element_id=occ.source_element_start_id, confidence=occ.confidence))
     s.flush()
+
+
+def _stored_items(ctx: _Ctx, scene: Scene, exclude: set) -> dict[Department, list[ItemOut]]:
+    out: dict[Department, list[ItemOut]] = {}
+    occs = ctx.session.scalars(select(BreakdownOccurrence).where(
+        BreakdownOccurrence.scene_id == scene.id, BreakdownOccurrence.review_status != ReviewStatus.REJECTED)).all()
+    for o in occs:
+        if o.department in exclude:
+            continue
+        it = ctx.session.get(BreakdownItem, o.item_id)
+        chars = [{"name": "", "role": oc.role} for oc in o.characters]
+        out.setdefault(o.department, []).append(ItemOut(
+            name=it.name, category=it.category or "other", description=o.description,
+            quantity_min=o.quantity_min, quantity_max=o.quantity_max, quantity_text=o.quantity_raw,
+            characters=chars, details=dict(o.details or {}), evidence=o.source_excerpt or "",
+            confidence=o.confidence, inferred=o.is_inferred))
+    return out
 
 
 def _find(elements, quote: str):

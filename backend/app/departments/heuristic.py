@@ -103,15 +103,18 @@ class DepartmentHeuristicExtractor:
         return [tuple(j) for j in joined]
 
     def extract(self, scene_text: str, ctx: SceneContext) -> dict[str, list[ItemOut]]:
+        # SONG: lines are read exactly by code (sound_music.derive), not by these rules.
         action = " ".join(e.text for e in ctx.elements
-                          if e.element_type in (ElementType.ACTION, ElementType.SCENE_HEADING))
+                          if e.element_type in (ElementType.ACTION, ElementType.SCENE_HEADING)
+                          and not re.match(r"\s*SONG\s*[:\-]", e.text, re.I))
         sentences = [s for s in _SENT_RE.split(action) if s.strip()]
         out: dict[str, list[ItemOut]] = {}
         for spec in self.specs:
             found: dict[str, ItemOut] = {}
             for sent in sentences:
                 for s, e, cat, ns, ne in self._matches(spec, sent):
-                    noun = normalize_name(sent[ns:ne])
+                    noun = normalize_name(cat.replace("_", " ") if cat in spec.offline_category_names
+                                          else sent[ns:ne])
                     before = sent[:s]
                     qty, qtext = None, None
                     m = _NUM_RE.search(before)
