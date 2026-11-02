@@ -68,13 +68,20 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
     setTitle(""); setProjectId(p.id); onChanged();
   };
   const upload = async () => {
-    if (!file || !projectId) return;
+    if (!file) return;
     setBusy("Importing… (scanned PDFs take longer: OCR)"); setErr("");
     try {
+      // No project yet? Create one automatically, named after the typed title or the file.
+      let pid = projectId;
+      if (!pid) {
+        const name = title.trim() || file.name.replace(/\.[^.]+$/, "");
+        pid = (await api.post<{ id: number }>("/api/projects", { title: name })).id;
+        setProjectId(pid); setTitle("");
+      }
       const fd = new FormData();
       fd.append("file", file); fd.append("ocr_lang", ocr);
-      const r = await api.post<any>(`/api/projects/${projectId}/scripts`, fd);
-      setCoverage(r.coverage); onChanged(); onSelect(projectId, r.script_version_id);
+      const r = await api.post<any>(`/api/projects/${pid}/scripts`, fd);
+      setCoverage(r.coverage); onChanged(); onSelect(pid, r.script_version_id);
     } catch (e) { setErr(String(e)); } finally { setBusy(""); }
   };
   const extract = async () => {
@@ -92,19 +99,23 @@ export function ImportPage({ projects, versionId, onChanged, onSelect }: {
         <section className="panel">
           <h2>1 · Import a script</h2>
           <div className="row">
-            <select value={projectId ?? ""} onChange={(e) => setProjectId(Number(e.target.value))}>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-            </select>
-            <span className="muted">or</span>
+            {projects.length > 0 ? <>
+              <select value={projectId ?? ""} onChange={(e) => setProjectId(Number(e.target.value))}>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+              <span className="muted">or</span>
+            </> : <span className="small muted">Project:</span>}
             <input type="text" placeholder="New project title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <button className="btn" onClick={createProject}>Create</button>
           </div>
           <div className="row" style={{ marginTop: 12 }}>
             <input type="file" accept=".pdf,.docx,.fdx,.fountain,.txt" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <label className="small muted">OCR language <input type="text" size={8} value={ocr} onChange={(e) => setOcr(e.target.value)} /></label>
-            <button className="btn primary" disabled={!file || !projectId || !!busy} onClick={upload}>Import</button>
+            <button className="btn primary" disabled={!file || !!busy} onClick={upload}>Import</button>
           </div>
-          <p className="small muted">PDF (text or scanned), Word (.docx), Final Draft (.fdx), Fountain.</p>
+          <p className="small muted">PDF (text or scanned), Word (.docx), Final Draft (.fdx), Fountain.
+            {!projectId && " A project is created automatically, named after the file (or the title you type)."}
+            {projectId && " A revised draft of the same film: import it into the same project, then compare in Revisions."}</p>
           {busy && <p>{busy}</p>}
           {err && <p className="error">{err}</p>}
         </section>
