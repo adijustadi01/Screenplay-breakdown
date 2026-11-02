@@ -69,6 +69,10 @@ class DepartmentSpec:
     default_role: str | None = None
     # Roles that make a character the item's owner (costume wearer, car's driver...).
     owner_roles: tuple[str, ...] = ()
+    # Offline rules: name items after the character involved ("TARA — DUPATTA").
+    name_with_holder: bool = False
+    # Offline rules: details readable from the sentence (e.g. "soaked" -> state=wet).
+    offline_details: Callable[[str], dict[str, Any]] | None = None
     # Extra review reasons for one item in one scene (department judgement in code).
     review: Callable[[ItemOut, SceneContext], list[str]] | None = None
     # Deterministic items derived in code from the scene (e.g. V.O. cues -> voiceover).

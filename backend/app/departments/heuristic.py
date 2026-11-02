@@ -16,7 +16,12 @@ from ..models.enums import ElementType
 from .base import DepartmentSpec, ItemOut, SceneContext
 
 _SENT_RE = re.compile(r"(?<=[.!?])\s+")
-_NUM_RE = re.compile(r"\b(" + "|".join(NUMBER_WORDS) + r"|\d+|A DOZEN|DOZENS OF)\s+((?:[\w'-]+\s+){0,2})$", re.I)
+TENS = {"FIFTEEN": 15, "TWENTY": 20, "THIRTY": 30, "FORTY": 40, "FIFTY": 50, "SIXTY": 60, "HUNDRED": 100,
+        "ELEVEN": 11, "TWELVE": 12}
+_WORDS = {**NUMBER_WORDS, **TENS, "ONE": 1, "A": 1}
+_NUMWORD = "|".join(sorted((w for w in _WORDS if w != "A"), key=len, reverse=True))
+_NUM_RE = re.compile(rf"\b((?:{_NUMWORD}|\d+)(?:\s+(?:HUNDRED|THOUSAND))?|A DOZEN|A HUNDRED|DOZENS OF)\s+"
+                     r"((?:[\w'-]+\s+){0,2})$", re.I)
 _SINGULAR_RE = re.compile(r"\b(a|an|his|her|their|its|the|one)\s+((?:[\w'-]+\s+){0,2})$", re.I)
 _POSSESSIVE_RE = re.compile(r"\b([A-Z][\w-]*)['’][sS]\s+((?:[\w-]+\s+){0,2})$")
 SINGULAR_S = {"bus", "glass", "dress", "class", "chess", "grass", "boss", "cross", "series",
@@ -26,12 +31,17 @@ SINGULAR_S = {"bus", "glass", "dress", "class", "chess", "grass", "boss", "cross
 
 
 def _number(word: str) -> int | None:
-    w = word.upper()
-    if w.isdigit():
-        return int(w)
-    if w in ("A DOZEN",):
+    parts = word.upper().split()
+    if parts == ["A", "DOZEN"]:
         return 12
-    return NUMBER_WORDS.get(w)
+    if parts[0] == "DOZENS":
+        return None                       # "dozens of" is not a number
+    base = int(parts[0]) if parts[0].isdigit() else _WORDS.get(parts[0])
+    if base is None:
+        return None
+    for mult in parts[1:]:
+        base *= {"HUNDRED": 100, "THOUSAND": 1000}.get(mult, 1)
+    return base
 
 
 def _plural(noun: str) -> bool:
@@ -100,16 +110,21 @@ class DepartmentHeuristicExtractor:
                         qty = 1
                     owner = None
                     pm = _POSSESSIVE_RE.search(before)
+                    who = [c for c in self.cast if re.search(rf"\b{re.escape(c)}\b", sent, re.IGNORECASE)
+                           or any(re.search(rf"\b{re.escape(t)}\b", sent, re.IGNORECASE)
+                                  for t in c.split() if len(t) > 2 and self.cast_tokens.get(t) == c)]
                     if pm and pm.group(1).upper() in self.cast_tokens:
                         owner = self.cast_tokens[pm.group(1).upper()]
+                    if spec.name_with_holder and (owner or who):
+                        holder = owner or who[0]
+                        owner = holder
+                        name = f"{holder} — {noun}"
+                    elif owner:
                         name = f"{pm.group(1).upper()}'S {noun}"
                     else:
                         name = noun
                     if name in found:
                         continue
-                    who = [c for c in self.cast if re.search(rf"\b{re.escape(c)}\b", sent, re.IGNORECASE)
-                           or any(re.search(rf"\b{re.escape(t)}\b", sent, re.IGNORECASE)
-                                  for t in c.split() if len(t) > 2 and self.cast_tokens.get(t) == c)]
                     chars = []
                     if owner and spec.owner_roles:
                         chars.append({"name": owner, "role": spec.owner_roles[0]})
@@ -119,6 +134,7 @@ class DepartmentHeuristicExtractor:
                     found[name] = ItemOut(
                         name=name, category=cat, description=sent.strip()[:200], quantity_text=qtext,
                         quantity_min=qty, quantity_max=qty, characters=chars,
+                        details=spec.offline_details(sent) if spec.offline_details else {},
                         evidence=sent[s:e] if not qtext else qtext, confidence=0.5)
             out[spec.key.value] = list(found.values())
         return out

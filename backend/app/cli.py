@@ -215,6 +215,8 @@ def cmd_dept_report(a) -> int:
                 ents = "; ".join(f"{e['item']}{' [' + e['state'] + ']' if e['state'] else ''}" for e in t["entries"]) \
                     or "(nothing recorded)"
                 print(f"   {mark} sc {t['scene']:>4} {t['time']:<10} {ents}")
+            for chk in c.get("continuity_checks", []):
+                print(f"     ? {chk['message']}")
         return 0
     peak = r["peak_units_in_one_scene"]
     print(f"{r['label'].upper()}: {r['unique_items']} unique {r['item_noun']}(s) in {_c(r['scenes'])} scene(s); "

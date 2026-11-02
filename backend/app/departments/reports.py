@@ -109,8 +109,21 @@ def continuity(f: Facts, departments: tuple[str, ...] = ("costumes", "makeup_hai
                              "entries": entries, "changed": prev is not None and sig != prev,
                              "nothing_recorded": not entries})
             prev = sig
+        # Injuries/looks that appear and then go unrecorded in later scenes with the character:
+        # not necessarily wrong (healed, flashback), but worth a check.
+        checks = []
+        seen_from: dict[str, int] = {}
+        for idx, t in enumerate(timeline):
+            for e in t["entries"]:
+                if e["department"] == "makeup_hair" and e["state"] not in ("healed", "removed"):
+                    seen_from.setdefault(e["item"], idx)
+            for item, start in seen_from.items():
+                if idx > start and not any(e["item"] == item for e in t["entries"]):
+                    checks.append({"scene_id": t["scene_id"], "scene": t["scene"], "item": item,
+                                   "message": f"{item} not recorded in sc {t['scene']} — healed, hidden, or missed?"})
         out.append({"character_id": cid, "name": f.characters[cid].canonical_name,
-                    "changes": sum(1 for t in timeline if t["changed"]), "timeline": timeline})
+                    "changes": sum(1 for t in timeline if t["changed"]), "timeline": timeline,
+                    "continuity_checks": checks})
     out.sort(key=lambda r: r["name"])
     return {"departments": list(departments), "characters": out}
 
