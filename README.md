@@ -40,7 +40,7 @@ Further reading:
 
 ## Use it in your browser — no install (GitHub Codespaces)
 
-Open **https://codespaces.new/adijustadi01/Screenplay-breakdown?ref=claude/nice-keller-2tlewr** and
+Open **https://codespaces.new/adijustadi01/Screenplay-breakdown?ref=claude/beautiful-hypatia-mzwj8e** and
 click **Create codespace**.
 
 - **First start:** GitHub prepares a private computer for you, which takes a few minutes the first
@@ -125,23 +125,36 @@ The app opens on **Start here**:
    variants (proposals only, nothing merged), and all nine departments. It uses Claude when an API key is
    saved, otherwise the free built-in reader.
 3. **Open the checklist** (the *To check* tab) and confirm, edit or reject what the app was unsure about.
-4. **Download Excel file**. You can also use the **⬇ Excel** button at the top right on any screen.
+4. **Download**: *Everything as Excel*, *Everything as PDF*, or *Choose what to download…*.
+   The **⬇ Download Excel / PDF** button at the top right is on every screen, even before a script is
+   imported (it then tells you what to do first).
 
-### The Excel file
+### Downloading — Excel or PDF, all of it or only the parts you pick
 
-You get one workbook. Every number comes from the same in-code reports the app shows. Sheets:
+The download window lists every part of the breakdown with a tick box, in groups:
 
-- **Read me**: summary, how to read the file, and links to each sheet.
-- **Scene breakdown**: the master, one row per scene. Columns: Sc, page, INT/EXT, location, time,
-  pages, story day, cast on screen, speaking, O.S./V.O., synopsis, and a column per department.
-- **Characters**, **Locations**.
-- **One sheet per department** that has items.
-- **Costume & look continuity**.
-- **Schedule** and **DOOD** for each schedule.
-- **To check**: the open review items.
+- **Main**: summary page; scene breakdown (in the PDF, one breakdown sheet per scene).
+- **Reports**: scene counts (INT/EXT × time), characters, locations, **who appears together**,
+  character × time, location × time, character × location × time.
+- **Departments**: one per department (with how many items were found), and costume & look continuity.
+- **Schedule & DOOD**: the one-liner and the DOOD for each schedule you have made.
+- **Other**: things still to check.
 
+Tick what you want (or use *Select all* / *Clear all*, or the tick box on a group), then click
+**⬇ Excel** or **⬇ PDF**. On the *Cast & locations* tab, **⬇ Download this report** opens the window
+with just that report ticked, and **⬇ All reports** ticks every report.
+
+- **Excel**: one sheet per part, with filters and links from the Read me sheet.
+- **PDF**: A4 landscape, ready to print or send. Each part starts on a new page; very wide tables
+  (a long DOOD) are split into column blocks that repeat the cast columns.
+
+Both files are built from the same tables, so their numbers match each other and the screens.
 Uncertain rows are **yellow, marked CHECK**, and night scenes are blue. Unknown values stay
-"unknown"; nothing is filled in. API: `GET /api/script-versions/{id}/export.xlsx`.
+"unknown"; nothing is filled in.
+
+API: `GET /api/script-versions/{id}/export.xlsx` and `.../export.pdf`, each with an optional
+`?sections=characters,combinations,...`. Leave it out to get everything that has content.
+`GET /api/script-versions/{id}/export/sections` lists the section keys.
 
 ## Using it — the tabs, in workflow order
 

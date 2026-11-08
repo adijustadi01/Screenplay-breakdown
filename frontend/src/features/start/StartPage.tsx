@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, Project } from "../../api";
+import { downloadUrl } from "../../components/ExportDialog";
 
 type Progress = {
   project_id: number; file: string; scenes: number; cast_done: boolean; departments_done: boolean;
@@ -7,12 +8,12 @@ type Progress = {
   job: null | { status: string; step: number; steps: number; step_label: string; done: number; total: number; error: string | null };
 };
 
-export const exportUrl = (versionId: number) => `/api/script-versions/${versionId}/export.xlsx`;
 
 /** The simple path: 1 choose script → 2 break it down → 3 check → 4 download Excel. */
-export function StartPage({ projects, versionId, onChanged, onSelect, goTo }: {
+export function StartPage({ projects, versionId, onChanged, onSelect, goTo, onDownload }: {
   projects: Project[]; versionId: number | null; onChanged: () => void;
   onSelect: (p: number, v: number) => void; goTo: (tab: string) => void;
+  onDownload: (preselect: string[] | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState("");
@@ -131,10 +132,14 @@ export function StartPage({ projects, versionId, onChanged, onSelect, goTo }: {
 
       <Step n={4} done={false} disabled={!step2} title="Get your breakdown">
         <div className="row">
-          <a className={`btn primary big ${!step2 ? "disabled" : ""}`} href={step2 && versionId ? exportUrl(versionId) : undefined}
-            download onClick={(e) => { if (!step2) e.preventDefault(); }}>⬇ Download Excel file</a>
-          <span className="small muted">One file with a sheet each for scenes, characters, locations, every department, continuity and your schedule. It goes to your Downloads folder.</span>
+          <a className={`btn primary big ${!step2 ? "disabled" : ""}`} href={step2 && versionId ? downloadUrl(versionId, "xlsx") : undefined}
+            download onClick={(e) => { if (!step2) e.preventDefault(); }}>⬇ Everything as Excel</a>
+          <a className={`btn primary big ${!step2 ? "disabled" : ""}`} href={step2 && versionId ? downloadUrl(versionId, "pdf") : undefined}
+            download onClick={(e) => { if (!step2) e.preventDefault(); }}>⬇ Everything as PDF</a>
+          <button className="btn big" disabled={!step2} onClick={() => onDownload(null)}>Choose what to download…</button>
         </div>
+        <p className="small muted">Excel: one sheet per part, with filters. PDF: ready to print or send, with one breakdown sheet per scene.
+          Use <b>Choose what to download</b> to pick only some parts (for example just Characters and Who appears together). Files go to your Downloads folder.</p>
         <p className="small">Or look at it here:{" "}
           <button className="linkbtn" disabled={!step2} onClick={() => goTo("scenes")}>Scenes</button> ·{" "}
           <button className="linkbtn" disabled={!step2} onClick={() => goTo("reports")}>Cast & location reports</button> ·{" "}

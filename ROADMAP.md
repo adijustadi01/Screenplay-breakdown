@@ -69,7 +69,7 @@ needs_review, review queue, reconciliation, reports and query engine as Stage 1.
 score with `python -m app.cli dept-accuracy <version> ../samples/highway_song.ground_truth.json`.
 
 **Still open (Stage 2):** live Claude accuracy on the department sample and on a real script;
-~~export~~ ✅ Excel export built (one workbook, all reports); PDF breakdown sheets still open.
+~~export~~ ✅ Excel and PDF export; the user picks which parts to download (PDF has one breakdown sheet per scene).
 
 ## Stage 3 — Revision tracking + scheduling  *(complete — awaiting your test on a real script)*
 
@@ -88,7 +88,7 @@ score with `python -m app.cli dept-accuracy <version> ../samples/highway_song.gr
 
 **Not built yet (candidates for later):** calendar days off / weekends and travel days in the DOOD;
 multiple units; stripboard drag-and-drop; call sheets; Movie Magic / StudioBinder export; reading
-revision asterisks and coloured pages from PDFs as extra evidence; breakdown-sheet PDF export (Excel export ✅ done).
+revision asterisks and coloured pages from PDFs as extra evidence; (Excel and PDF export ✅ done).
 
 **Known limitations to revisit (from Stage 1)**
 - Live Claude extraction accuracy has not been measured in the build environment (no API key

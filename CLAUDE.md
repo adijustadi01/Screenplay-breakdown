@@ -13,8 +13,11 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 - **Stage 1:** import (PDF/scan OCR/DOCX/FDX/Fountain) with a coverage check; scene, cast and location extraction; review queue; reports and query.
 - **Stage 2:** nine departmental breakdowns.
 - **Stage 3:** revision diff; story days vs shooting days; schedule, one-liner and DOOD.
-- **Added later:** a one-click "Break down my script" job, a simple **Start here** screen and an **Excel export**
-  (`backend/app/export/excel.py`, `GET /api/script-versions/{id}/export.xlsx`).
+- **Added later:** a one-click "Break down my script" job, a simple **Start here** screen, and
+  **Excel and PDF export of chosen parts**: `backend/app/export/sections.py` builds the tables, and `excel.py`
+  and `pdf.py` (reportlab) write them. Routes: `GET /api/script-versions/{id}/export.xlsx|.pdf?sections=a,b`
+  and `.../export/sections`. In the UI, the download window is `frontend/src/components/ExportDialog.tsx`,
+  opened from the top-bar button, which is always visible.
 
 **Stack:**
 - Backend: Python 3.11+, FastAPI, SQLAlchemy 2 (SQLite).
@@ -44,7 +47,6 @@ cd backend && python -m uvicorn app.main:app --port 8000                  # open
 ## Still open
 These come from ROADMAP.md:
 - Measure live Claude accuracy on a real script (never run yet, because there was no key).
-- PDF breakdown sheets.
 - Calendar days off in the DOOD.
 - Stripboard drag-and-drop, call sheets.
 - Simplify the review queue wording further (the user finds technical labels confusing).

@@ -9,7 +9,8 @@ import { QueryPage } from "./features/query/QueryPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { ScenesPage } from "./features/scenes/ScenesPage";
-import { exportUrl, StartPage } from "./features/start/StartPage";
+import { StartPage } from "./features/start/StartPage";
+import { ExportDialog } from "./components/ExportDialog";
 
 const TABS: [string, string, string][] = [
   ["start", "Start here", ""],
@@ -29,6 +30,9 @@ export function App() {
   const [sel, setSel] = useState<{ p: number; v: number } | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [desktop, setDesktop] = useState(false);
+  // Download dialog: null = closed; otherwise the parts to tick first (null inside = everything).
+  const [exporting, setExporting] = useState<{ pre: string[] | null } | null>(null);
+  const openExport = useCallback((pre: string[] | null = null) => setExporting({ pre }), []);
   useEffect(() => { api.get<any>("/api/settings").then((s) => setDesktop(!!s.desktop)).catch(() => {}); }, []);
 
   const refresh = useCallback(() => {
@@ -61,7 +65,7 @@ export function App() {
             {!sel && <option value="">—</option>}
             {versions.map(({ p, v }) => <option key={v.id} value={`${p.id}:${v.id}`}>{p.title} — {v.label || v.file} (v{v.id}, {v.status})</option>)}
           </select>
-          {sel && <a className="btn primary" href={exportUrl(sel.v)} download title="Download the whole breakdown as one Excel file">⬇ Excel</a>}
+          <button className="btn primary" onClick={() => openExport()} title="Choose what to download, as Excel or PDF">⬇ Download Excel / PDF</button>
           {desktop && <button className="btn" title="Close Screenplay Breakdown" onClick={() => {
             if (confirm("Quit Screenplay Breakdown? Your work is saved.")) api.post("/api/quit").finally(() => window.close());
           }}>Quit</button>}
@@ -70,18 +74,20 @@ export function App() {
       <main>
         {TABS.find(([k]) => k === tab)?.[2] && <p className="tabhelp">{TABS.find(([k]) => k === tab)![2]}</p>}
         {tab === "start" && <StartPage projects={projects} versionId={sel?.v ?? null} onChanged={refresh}
-          onSelect={(p, v) => setSel({ p, v })} goTo={setTab} />}
+          onSelect={(p, v) => setSel({ p, v })} goTo={setTab} onDownload={openExport} />}
         {tab === "import" && <ImportPage projects={projects} versionId={sel?.v ?? null} onChanged={refresh} onSelect={(p, v) => setSel({ p, v })} />}
         {tab !== "import" && tab !== "start" && !sel && <p className="muted">No script yet — go to <button className="linkbtn" onClick={() => setTab("start")}>Start here</button> and import one.</p>}
         {sel && tab === "scenes" && <ScenesPage versionId={sel.v} />}
         {sel && tab === "review" && <ReviewPage projectId={sel.p} versionId={sel.v} onChanged={refresh} />}
-        {sel && tab === "reports" && <ReportsPage versionId={sel.v} />}
+        {sel && tab === "reports" && <ReportsPage versionId={sel.v} onDownload={openExport} />}
         {sel && tab === "departments" && <DepartmentsPage versionId={sel.v} />}
         {sel && tab === "query" && <QueryPage versionId={sel.v} />}
         {sel && tab === "revisions" && projects.find((p) => p.id === sel.p) &&
           <RevisionsPage project={projects.find((p) => p.id === sel.p)!} versionId={sel.v} onChanged={refresh} />}
         {sel && tab === "schedule" && <SchedulePage projectId={sel.p} versionId={sel.v} />}
       </main>
+      {exporting && <ExportDialog versionId={sel?.v ?? null} preselect={exporting.pre} onClose={() => setExporting(null)}
+        goStart={() => setTab("start")} />}
     </DrillProvider>
   );
 }

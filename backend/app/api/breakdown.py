@@ -413,19 +413,49 @@ def add_item(scene_id: int, body: AddItemIn, s: Session = Depends(get_session)) 
     return snapshot(occ)
 
 
-# ----------------------------------------------------------------------------- Excel export
-@router.get("/script-versions/{version_id}/export.xlsx")
-def export_excel(version_id: int, s: Session = Depends(get_session)):
+# ----------------------------------------------------------------------------- Excel / PDF export
+def _export_keys(sections: str | None) -> list[str] | None:
+    """`sections` is a comma-separated list of section keys; empty or missing = everything."""
+    keys = [k.strip() for k in (sections or "").split(",") if k.strip()]
+    return keys or None
+
+
+@router.get("/script-versions/{version_id}/export/sections")
+def export_sections(version_id: int, s: Session = Depends(get_session)) -> list[dict]:
+    """What can be downloaded, grouped, with whether each part has anything in it yet."""
+    from ..export import sections as sec
+    _version(s, version_id)
+    return sec.catalog(sec.Context(s, version_id))
+
+
+def _download(s: Session, version_id: int, sections: str | None, fmt: str):
     from urllib.parse import quote
 
     from fastapi.responses import Response
 
-    from ..export.excel import build_workbook
     _version(s, version_id)
-    data, filename = build_workbook(s, version_id)
-    return Response(
-        data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=\"breakdown.xlsx\"; filename*=UTF-8''{quote(filename)}"})
+    if fmt == "xlsx":
+        from ..export.excel import build_workbook as build
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        from ..export.pdf import build_pdf as build
+        media = "application/pdf"
+    try:
+        data, filename = build(s, version_id, _export_keys(sections))
+    except KeyError as e:
+        raise HTTPException(400, f"unknown section(s): {e.args[0]}")
+    return Response(data, media_type=media, headers={
+        "Content-Disposition": f"attachment; filename=\"breakdown.{fmt}\"; filename*=UTF-8''{quote(filename)}"})
+
+
+@router.get("/script-versions/{version_id}/export.xlsx")
+def export_excel(version_id: int, sections: str | None = None, s: Session = Depends(get_session)):
+    return _download(s, version_id, sections, "xlsx")
+
+
+@router.get("/script-versions/{version_id}/export.pdf")
+def export_pdf(version_id: int, sections: str | None = None, s: Session = Depends(get_session)):
+    return _download(s, version_id, sections, "pdf")
 
 
 # ------------------------------------------------------------------- one-click full breakdown

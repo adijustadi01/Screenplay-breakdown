@@ -11,7 +11,7 @@ ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 sys.path.insert(0, os.path.join(ROOT, "backend"))
 
 hidden = (collect_submodules("app") + collect_submodules("uvicorn") + collect_submodules("anthropic")
-          + ["pymupdf", "lxml.etree", "lxml._elementpath", "pytesseract", "PIL.Image"])
+          + collect_submodules("reportlab") + ["pymupdf", "lxml.etree", "lxml._elementpath", "pytesseract", "PIL.Image"])
 datas = [
     (os.path.join(ROOT, "backend", "app", "extraction", "prompts"), "app/extraction/prompts"),
     (os.path.join(ROOT, "backend", "app", "departments", "prompts"), "app/departments/prompts"),
@@ -20,7 +20,7 @@ datas = [
     (os.path.join(ROOT, "samples", "highway_song.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "monsoon_ledger_rev_blue.fountain"), "samples"),
 ]
-datas += collect_data_files("docx")
+datas += collect_data_files("docx") + collect_data_files("reportlab")
 tess = os.environ.get("TESSERACT_DIR")
 if tess and os.path.isdir(tess):
     datas.append((tess, "tesseract"))

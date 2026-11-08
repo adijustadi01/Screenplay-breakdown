@@ -9,7 +9,15 @@ const TABS = [
 ];
 
 /** Reports computed in code from the reviewed facts. Every number opens its scenes. */
-export function ReportsPage({ versionId }: { versionId: number }) {
+// The download section that matches each report tab.
+const EXPORT_KEY: Record<string, string> = {
+  scenes: "scene_summary", characters: "characters", locations: "locations", combinations: "combinations",
+  "crosstab:character_time": "character_time", "crosstab:location_time": "location_time",
+  "crosstab:character_location_time": "character_location_time",
+};
+const REPORT_KEYS = Object.values(EXPORT_KEY);
+
+export function ReportsPage({ versionId, onDownload }: { versionId: number; onDownload: (preselect: string[] | null) => void }) {
   const [tab, setTab] = useState("scenes");
   const [mode, setMode] = useState("as_written");
   // Keep which tab/mode the data belongs to, so a tab switch never renders stale data.
@@ -27,7 +35,10 @@ export function ReportsPage({ versionId }: { versionId: number }) {
       <div className="row" style={{ marginBottom: 12 }}>
         <nav className="tabs">{TABS.map(([k, label]) =>
           <button key={k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{label}</button>)}</nav>
-        <label className="small" style={{ marginLeft: "auto" }}>Time of day{" "}
+        <button className="btn" style={{ marginLeft: "auto" }} onClick={() => onDownload([EXPORT_KEY[tab]])}
+          title="Download this report as Excel or PDF — you can tick more reports in the next window">⬇ Download this report</button>
+        <button className="btn" onClick={() => onDownload(REPORT_KEYS)} title="All the reports on this page">⬇ All reports</button>
+        <label className="small">Time of day{" "}
           <select value={mode} onChange={(e) => setMode(e.target.value)}>
             <option value="as_written">as written (CONTINUOUS stays CONTINUOUS)</option>
             <option value="effective">with inherited lighting (inferred, flagged)</option>
