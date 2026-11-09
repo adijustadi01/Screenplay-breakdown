@@ -170,3 +170,13 @@ def test_bad_credentials_abort_the_run(db, project):
     with pytest.raises(ExtractionAborted):
         run_extraction(db, v.id, ex, workers=1)
     assert not db.scalars(select(ReviewItem).where(ReviewItem.reason_code == "extraction_failed")).all()
+
+
+def test_capitalised_props_are_not_characters():
+    """Props and sounds in CAPS after 'a/the' ('a MIRROR') must not become characters;
+    people introduced the same way ('A WARD BOY') still do, with all their words."""
+    from app.extraction.heuristic_extractor import intro_names
+    names = intro_names(["She looks into A MIRROR. A KNIFE glints. The GUNSHOT echoes.",
+                         "A WARD BOY wheels a stretcher past. A CONSTABLE salutes.",
+                         "The TAXI DRIVER watches him in the mirror."])
+    assert names == {"WARD BOY", "CONSTABLE", "TAXI DRIVER"}

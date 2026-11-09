@@ -24,7 +24,32 @@ NOT_NAMES = {"INT", "EXT", "CONTINUED", "CUT", "FADE", "THE", "END", "DAY", "NIG
 
 _INTRO_RE = re.compile(r"\b((?:[A-Z][A-Z.'’\-]+)(?:\s+[A-Z][A-Z.'’\-0-9]+){0,3})\s*\((\d{1,3}s?|[A-Z]?\d+[A-Za-z]*)\)")
 _GROUP_RE = re.compile(r"\b(" + "|".join(NUMBER_WORDS) + r"|\d+)\s+([A-Z]{3,}(?:\s+[A-Z]{3,})?)\b")
-_ARTICLE_CAPS_RE = re.compile(r"\b(?:A|An|The)\s+([A-Z]{4,}(?:\s+[A-Z]{4,})?)\b")
+_ARTICLE_CAPS_RE = re.compile(r"\b(?:A|An|The)\s+([A-Z]{3,}(?:\s+[A-Z]{2,}){0,2})\b")
+# Screenwriters put props and sounds in CAPS too ("a MIRROR", "The GUNSHOT"), so "A/The + CAPS" only
+# counts as a new character when its last word names a person ("A CONSTABLE", "A WARD BOY").
+PERSON_WORDS = {
+    "MAN", "MEN", "WOMAN", "WOMEN", "BOY", "BOYS", "GIRL", "GIRLS", "CHILD", "KID", "KIDS", "BABY", "LADY",
+    "GENTLEMAN", "GUY", "GUYS", "TEEN", "TEENAGER", "PERSON", "PEOPLE", "STRANGER", "FIGURE",
+    "CONSTABLE", "COP", "COPS", "OFFICER", "INSPECTOR", "SERGEANT", "SOLDIER", "SOLDIERS", "GUARD", "GUARDS",
+    "WATCHMAN", "SECURITY", "COMMISSIONER", "CAPTAIN", "COMMANDER", "MAJOR", "COLONEL", "GENERAL",
+    "DOCTOR", "NURSE", "SURGEON", "PATIENT", "COMPOUNDER", "PRIEST", "PANDIT", "POOJARI", "SADHU", "MONK",
+    "IMAM", "NUN", "FATHER", "MOTHER", "BROTHER", "SISTER", "SON", "DAUGHTER", "WIFE", "HUSBAND", "UNCLE",
+    "AUNTY", "AUNT", "GRANDFATHER", "GRANDMOTHER", "GRANDMA", "GRANDPA", "COUSIN", "NEPHEW", "NIECE",
+    "FRIEND", "NEIGHBOUR", "NEIGHBOR", "LANDLORD", "LANDLADY", "TENANT", "SERVANT", "MAID", "COOK", "BUTLER",
+    "DRIVER", "CHAUFFEUR", "PILOT", "CONDUCTOR", "PORTER", "COOLIE", "WAITER", "WAITRESS", "BARTENDER",
+    "MANAGER", "CLERK", "CASHIER", "ACCOUNTANT", "BOSS", "OWNER", "SHOPKEEPER", "VENDOR", "SELLER", "HAWKER",
+    "MERCHANT", "BROKER", "BANKER", "LAWYER", "ADVOCATE", "JUDGE", "MINISTER", "POLITICIAN", "MLA", "MP",
+    "TEACHER", "PRINCIPAL", "STUDENT", "STUDENTS", "PROFESSOR", "REPORTER", "JOURNALIST", "PHOTOGRAPHER",
+    "ANCHOR", "FARMER", "VILLAGER", "VILLAGERS", "FISHERMAN", "LABOURER", "LABORER", "WORKER", "WORKERS",
+    "MECHANIC", "TAILOR", "BARBER", "DHOBI", "PEON", "POSTMAN", "MILKMAN", "BEGGAR", "THIEF", "ROBBER",
+    "GOON", "GOONS", "HENCHMAN", "HENCHMEN", "THUG", "THUGS", "GANGSTER", "KILLER", "ASSASSIN", "SMUGGLER",
+    "DON", "BODYGUARD", "HITMAN", "RECEPTIONIST", "SECRETARY", "ASSISTANT", "ATTENDANT", "AGENT", "SPY",
+    "DANCER", "DANCERS", "SINGER", "MUSICIAN", "DRUMMER", "ACTOR", "ACTRESS", "HERO", "HEROINE", "VILLAIN",
+    "KING", "QUEEN", "PRINCE", "PRINCESS", "MINISTERS", "PRISONER", "CONVICT", "WARDEN", "JAILER",
+    "MOURNER", "MOURNERS", "CROWD", "MOB", "GANG", "DOUBLE", "STUNTMAN", "CUSTOMER", "PASSENGER",
+    "PASSENGERS", "TOURIST", "VISITOR", "GUEST", "GUESTS", "BRIDE", "GROOM", "ELDER", "ELDERS", "CHIEF",
+    "HEADMAN", "LEADER", "PLAYER", "PLAYERS", "COACH", "UMPIRE", "FAN", "FANS", "SAILOR", "CREW",
+}
 
 
 def intro_names(action_texts: list[str]) -> set[str]:
@@ -34,8 +59,9 @@ def intro_names(action_texts: list[str]) -> set[str]:
         for m in _INTRO_RE.finditer(t):
             names.add(normalize_name(m.group(1)))
         for m in _ARTICLE_CAPS_RE.finditer(t):
-            if m.group(1) not in NOT_NAMES:
-                names.add(normalize_name(m.group(1)))
+            phrase = m.group(1)
+            if phrase not in NOT_NAMES and phrase.split()[-1] in PERSON_WORDS:
+                names.add(normalize_name(phrase))
     return {n for n in names if n not in NOT_NAMES}
 
 
