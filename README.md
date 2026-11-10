@@ -55,9 +55,11 @@ click **Create codespace**.
 
 You can install this as a normal Windows program instead of using the developer setup below.
 
-1. **Get the installer.** Open the repository's **Actions** tab on GitHub → **Windows installer** →
-   the latest green run. Download **ScreenplayBreakdown-Windows**, which contains
-   `ScreenplayBreakdown-Setup.exe` and a portable zip.
+1. **Get the installer.** Click
+   **https://github.com/adijustadi01/Screenplay-breakdown/releases/latest/download/ScreenplayBreakdown-Setup.exe**:
+   it downloads the newest version straight away, with no GitHub sign-in. (A portable version, no install
+   needed: `.../releases/latest/download/ScreenplayBreakdown-portable.zip`.) Every build is also on the
+   **Releases** page and in the **Actions** tab.
 2. **Run `ScreenplayBreakdown-Setup.exe`.** No administrator rights are needed. The installer is
    not code-signed, so Windows SmartScreen may say "Windows protected your PC": click **More info →
    Run anyway**.

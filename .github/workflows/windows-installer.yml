@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write          # to publish the installer as a GitHub Release (direct download link)
     timeout-minutes: 60
     env:
       PYTHONUTF8: "1"          # read/write files as UTF-8 on Windows, like everywhere else
@@ -73,3 +75,22 @@ jobs:
           name: ScreenplayBreakdown-Windows
           path: desktop/Output/*
           retention-days: 30
+
+      # A permanent direct-download link that always gives the newest build:
+      #   https://github.com/<owner>/<repo>/releases/latest/download/ScreenplayBreakdown-Setup.exe
+      - name: Publish as the latest release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Screenplay Breakdown — build ${{ github.run_number }}
+          body: |
+            Windows installer built from `${{ github.ref_name }}` (${{ github.sha }}).
+            Download **ScreenplayBreakdown-Setup.exe** and double-click it. Windows may say
+            "Windows protected your PC": click **More info → Run anyway** (the app is not code-signed).
+            Your projects are kept when you install over an older version.
+          make_latest: "true"
+          files: |
+            desktop/Output/ScreenplayBreakdown-Setup.exe
+            desktop/Output/ScreenplayBreakdown-portable.zip
