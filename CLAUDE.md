@@ -29,6 +29,8 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
   actor when accepting (`changes={"actors": ["A","B","B"]}` → `merge_plans`). Character report rows carry
   `by_role` (scenes per actor); export section `cast_by_role`; Scenes tab has a "Played by" picker
   (edit `casting_role_id`, validated to the same character). Re-extraction keeps chosen roles (`prev_roles`).
+  Many age wordings are parsed (see README); a child with no written age after "YEARS LATER" gets an
+  "AFTER TIME JUMP" group (only when young before the jump / under 30 after it — adults are never split by a jump).
   The user insists: the app suggests, the director decides.
   Samples: `samples/river_years.fountain`, `samples/three_ages.fountain`; tests: `backend/tests/test_ages_and_dictionary.py`.
 
@@ -52,7 +54,7 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 
 ## Run and test
 ```bash
-cd backend && pip install -e ".[dev]" && python -m pytest -q            # 222 tests
+cd backend && pip install -e ".[dev]" && python -m pytest -q            # 235 tests
 cd frontend && npm ci && npm run build
 cd backend && python -m uvicorn app.main:app --port 8000                  # open http://localhost:8000
 ```

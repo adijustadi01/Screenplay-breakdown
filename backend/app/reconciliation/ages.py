@@ -40,6 +40,9 @@ STAGE_WORDS: dict[str, tuple[int, int] | None] = {
     "SCHOOLGIRL": (6, 14), "TEEN": (13, 19), "TEENAGE": (13, 19), "TEENAGER": (13, 19), "TEENAGED": (13, 19),
     "ADULT": (20, 59), "GROWN": (20, 59), "GROWN-UP": (20, 59), "MIDDLE-AGED": (40, 60),
     "OLD": (60, 90), "ELDERLY": (60, 95), "AGED": (60, 95),
+    "TEENS": (13, 19), "GROWN UP": (20, 59), "GROWN-UP": (20, 59),
+    # Hindi words often used in English-language Indian scripts: chhoti/chhota = little.
+    "CHHOTI": (3, 12), "CHOTI": (3, 12), "CHHOTA": (3, 12), "CHOTA": (3, 12), "BACHPAN": (3, 12),
     "YOUNG": None, "YOUNGER": None, "OLDER": None,
 }
 _NUM_WORDS = {"ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4, "FIVE": 5, "SIX": 6, "SEVEN": 7, "EIGHT": 8, "NINE": 9,
@@ -68,6 +71,7 @@ class SceneAge:
     scene: Scene
     evidence: Evidence | None = None
     carried_from: Scene | None = None
+    epoch: int | None = None          # main story only: how many time jumps ("YEARS LATER") came before
 
 
 @dataclass
@@ -81,8 +85,12 @@ class AgeGroup:
     def mid(self) -> float:
         return ((self.low or 0) + (self.high or 0)) / 2
 
+    jump_side: str | None = None      # "AFTER TIME JUMP": no age written, placed by a time jump
+
     def label(self) -> str:
         """BABY, CHILD, TEEN, YOUNG, MIDDLE-AGED or OLD; 'YOUNG / MIDDLE-AGED' when the ages span two."""
+        if self.jump_side:
+            return self.jump_side
         if self.low is None:
             return " / ".join(sorted(self.notes)).upper()
         mids = sorted({(i.evidence.low + i.evidence.high) / 2 for i in self.items
@@ -114,32 +122,63 @@ def _name_alt(names: list[str]) -> str:
     return "(?:" + "|".join(alts) + ")"
 
 
+_UNITS = ["ZERO", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN",
+          "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"]
+_TENS = {"TWENTY": 20, "THIRTY": 30, "FORTY": 40, "FIFTY": 50, "SIXTY": 60, "SEVENTY": 70, "EIGHTY": 80,
+         "NINETY": 90}
+# "10", "ten", "twenty-two"
+_NUM = (r"(\d{1,2}|(?:" + "|".join(_TENS) + r")(?:[\s-](?:" + "|".join(_UNITS[1:10]) + r"))?|"
+        + "|".join(sorted(_UNITS[1:], key=len, reverse=True)) + r")")
+
+
+def _to_int(num: str) -> int:
+    if num.isdigit():
+        return int(num)
+    parts = re.split(r"[\s-]+", num.upper())
+    if parts[0] in _TENS:
+        return _TENS[parts[0]] + (_UNITS.index(parts[1]) if len(parts) > 1 else 0)
+    return _UNITS.index(parts[0])
+
+
 def _evidence_in(text: str, names: list[str]) -> Evidence | None:
     """Look for this character's age in one scene's action / cue text."""
     if not names:
         return None
     nm = _name_alt(names)
     q = r"(?:(early|mid|late)[\s-]+)?"
+    yrs = r"(?:years?|yrs?\.?|saal)"
+    before = r"(?<![\w'-])"
     pats = [
-        # ARJUN (6) / ARJUN (age 6) / ARJUN (early 30s) / ARJUN (6 years old)
-        rf"(?<![\w']){nm}\s*\(\s*(?:now\s+|age[d]?\s+|about\s+)?{q}(\d{{1,2}})(0s|s)?\b[^)]*\)",
+        # ARJUN (6) / ARJUN (age 6) / ARJUN (aged about 6) / ARJUN (CHILD - 6) / ARJUN (early 30s)
+        (rf"{before}{nm}\s*\(\s*[^)\d]{{0,20}}?{q}(\d{{1,2}})(0s|s)?\b[^)]*\)", True),
         # ARJUN, 28, ... / ARJUN, now 28. / ARJUN, aged 6,
-        rf"(?<![\w']){nm},\s*(?:now\s+|age[d]?\s+|about\s+)?{q}(\d{{1,2}})(0s|s)?(?:\s+(?:years?|yrs?)(?:\s+old)?)?\s*[,.;)]",
+        (rf"{before}{nm},\s*(?:now\s+|age[d]?\s+|about\s+)?{q}(\d{{1,2}})(0s|s)?(?:\s+{yrs}(?:\s+old)?)?\s*[,.;)]",
+         True),
+        # ARJUN - 10 YRS / ARJUN: 10 years
+        (rf"{before}{nm}\s*[-–—:]\s*()(\d{{1,2}})()\s*{yrs}", True),
+        # 10-year-old ARJUN / a ten year old ARJUN
+        (rf"{before}()\b{_NUM}[\s-]*{yrs}[\s-]*old\s+{nm}(?![\w'])()", False),
+        # ARJUN, a 10-year-old girl / ARJUN, now a ten year old
+        (rf"{before}{nm},?\s+(?:now\s+)?(?:an?\s+)?()\b{_NUM}[\s-]*{yrs}[\s-]*old\b()", False),
+        # ARJUN, now a young woman of 19
+        (rf"{before}{nm}\b[^.\n]{{0,50}}?\b(?:woman|man|girl|boy|lady|teenager|child|kid)\s+of\s+(){_NUM}\b()",
+         False),
     ]
-    for p in pats:
+    for p, digits_only in pats:
         m = re.search(p, text, re.IGNORECASE)
         if m:
-            qual, num, dec = m.group(1), m.group(2), m.group(3)
+            qual, num, dec = m.group(1) or None, m.group(2), m.group(3) or None
             if dec == "0s":
                 num, dec = num + "0", "s"
-            lo, hi, note = _age_from(num, dec, qual)
+            lo, hi, note = _age_from(str(_to_int(num)) if not digits_only else num, dec, qual)
             return Evidence(lo, hi, note, m.group(0))
-    words = "|".join(sorted((re.escape(w) for w in STAGE_WORDS), key=len, reverse=True))
-    for p in (rf"(?<![\w'])({words})\s+{nm}(?![\w'])", rf"(?<![\w']){nm}\s*\(\s*({words})\s*\)",
-              rf"(?<![\w']){nm}\s+as\s+an?\s+({words})\b"):
+    words = "|".join(sorted((re.escape(w).replace(r"\ ", r"[\s-]") for w in STAGE_WORDS), key=len, reverse=True))
+    for p in (rf"{before}({words})\s+{nm}(?![\w'])", rf"{before}{nm}\s*\(\s*(?:early\s+|mid\s+|late\s+)?({words})\s*\)",
+              rf"{before}{nm}\s+as\s+an?\s+({words})\b"):
         m = re.search(p, text, re.IGNORECASE)
         if m:
-            w = m.group(1).upper()
+            w = re.sub(r"[\s-]+", " ", m.group(1).upper())
+            w = w if w in STAGE_WORDS else w.replace(" ", "-")
             rng = STAGE_WORDS[w]
             return Evidence(rng[0] if rng else None, rng[1] if rng else None, w.lower(), m.group(0))
     return None
@@ -189,11 +228,13 @@ def character_age_groups(session: Session, version_id: int, character: Character
     current: dict[str, tuple[Evidence, Scene]] = {}
     prev_era = None
     results: list[SceneAge] = []
+    epoch = 0
     for sc in scenes:
         text = text_by_scene.get(sc.id, "")
         era, jump = _era(sc, text)
         if jump:
             current.pop("main", None)
+            epoch += 1
         if prev_era == "flashback" and era != "flashback":
             current.pop("flashback", None)
         prev_era = era
@@ -206,14 +247,15 @@ def character_age_groups(session: Session, version_id: int, character: Character
             rng = STAGE_WORDS[own_word]
             ev = Evidence(rng[0] if rng else None, rng[1] if rng else None, own_word.lower(),
                           character.canonical_name)
+        ep = epoch if era == "main" else None
         if ev is not None:
             current[era] = (ev, sc)
-            results.append(SceneAge(a, sc, ev))
+            results.append(SceneAge(a, sc, ev, epoch=ep))
         elif era in current:
             ev0, src = current[era]
-            results.append(SceneAge(a, sc, ev0, carried_from=src))
+            results.append(SceneAge(a, sc, ev0, carried_from=src, epoch=ep))
         else:
-            results.append(SceneAge(a, sc))
+            results.append(SceneAge(a, sc, epoch=ep))
 
     known = [r for r in results if r.evidence is not None]
     unknown = [r for r in results if r.evidence is None]
@@ -241,6 +283,37 @@ def character_age_groups(session: Session, version_id: int, character: Character
         target.items.append(r)
         target.notes.add(r.evidence.note)
     groups += list(word_groups.values())
+
+    # No age written, but the scenes sit on the other side of a time jump ("FIFTEEN YEARS LATER") from
+    # the scenes that do give an age: probably a different age too. Offered as its own group — only
+    # when some age is written somewhere, so a parent who simply lives through the jump is left alone.
+    if groups:
+        known_epochs = {r.epoch for r in known if r.epoch is not None}
+        by_epoch: dict[int, list[SceneAge]] = defaultdict(list)
+        for r in unknown:
+            if r.epoch is not None and known_epochs and r.epoch not in known_epochs:
+                by_epoch[r.epoch].append(r)
+        def youngest_mid(rs) -> float | None:
+            mids = [(r.evidence.low + r.evidence.high) / 2 for r in rs if r.evidence.low is not None]
+            if any(r.evidence.low is None and r.evidence.note.upper() in ("YOUNG", "YOUNGER") for r in rs):
+                mids.append(10)
+            return min(mids) if mids else None
+
+        for ep, items in sorted(by_epoch.items()):
+            if ep > max(known_epochs):
+                side, ref = "AFTER TIME JUMP", youngest_mid([r for r in known if r.epoch is not None and r.epoch < ep])
+                limit = 20      # a child or teen before the jump has grown up after it
+            elif ep < min(known_epochs):
+                side, ref = "BEFORE TIME JUMP", youngest_mid([r for r in known if r.epoch is not None and r.epoch > ep])
+                limit = 30      # a young adult after the jump was a child before it
+            else:
+                continue
+            if ref is None or ref >= limit:
+                continue        # adults barely change over a jump: same actor, nothing to suggest
+            g = AgeGroup(None, None, {side.lower()}, items)
+            g.jump_side = side
+            groups.append(g)
+            unknown = [r for r in unknown if r not in items]
     return groups, unknown
 
 
@@ -308,8 +381,11 @@ def propose_age_roles(session: Session, version_id: int, add) -> None:
         for g in groups:
             name = role_name(ch, g)
             carried = [i for i in g.items if i.carried_from is not None]
-            stated = sorted({i.evidence.quote for i in g.items if i.carried_from is None})[:3]
+            stated = sorted({i.evidence.quote for i in g.items if i.evidence and i.carried_from is None})[:3]
             line = f"• {name}: scene(s) {_scene_list(g.items)}"
+            if g.jump_side:
+                line += (" — no age is written for these, but they come "
+                         f"{g.jump_side.lower().replace(' time jump', '')} a time jump (e.g. 'YEARS LATER'). Please check")
             if carried:
                 line += f" ({len(carried)} of them carry the age from an earlier scene — please check)"
             if stated:

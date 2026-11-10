@@ -226,3 +226,65 @@ def test_played_by_can_be_changed_per_scene_and_survives_a_reread(db, project, t
     run_extraction(db, v.id, HeuristicExtractor(), workers=1)
     apps = db.scalars(select(Appearance).where(Appearance.character_id == arjun.id)).all()
     assert all(a.casting_role_id is not None for a in apps)
+
+
+# ------------------------------------------------------------------ more ways scripts write ages
+@pytest.mark.parametrize("text,low", [
+    ("MEENA - 10 YRS - runs.", 10), ("10-year-old MEENA runs.", 10), ("A ten-year-old MEENA runs.", 10),
+    ("MEENA, a 10-year-old girl, runs.", 10), ("MEENA (aged about 10) runs.", 10), ("MEENA (CHILD - 10) runs.", 10),
+    ("MEENA, now a young woman of nineteen, wins.", 19), ("MEENA (late teens) wins.", 13),
+    ("CHHOTI MEENA runs.", 3), ("Grown up MEENA wins.", 20), ("MEENA (10 saal) runs.", 10),
+])
+def test_more_age_wordings(text, low):
+    assert _evidence_in(text, ["MEENA"]).low == low
+
+
+def test_year_old_is_not_old_age():
+    """'10-year-old' once read as OLD (60+)."""
+    e = _evidence_in("A 10-year-old MEENA runs.", ["MEENA"])
+    assert (e.low, e.high) == (10, 10)
+
+
+JUMP_ONLY = """Title: Time Jump
+
+EXT. VILLAGE - DAY #1#
+
+FATHER (40s) watches as YOUNG MEENA and YOUNG RUPA run laps in the dust.
+
+MEENA
+It hurts.
+
+INT. HOUSE - NIGHT #2#
+
+Meena and Rupa eat in silence. Father counts rotis.
+
+RUPA
+Tomorrow also?
+
+EXT. CITY - DAY #3#
+
+SUPER: EIGHT YEARS LATER
+
+Meena walks into the sports academy. Rupa follows.
+
+MEENA
+This is it.
+
+INT. GYM - DAY #4#
+
+Meena spars with a coach. Father watches from the stands.
+"""
+
+
+def test_time_jump_splits_a_child_even_without_a_written_adult_age(db, project, tmp_path):
+    p = tmp_path / "jump.fountain"
+    p.write_text(JUMP_ONLY, encoding="utf-8")
+    v = import_script(db, project.id, p)
+    run_extraction(db, v.id, HeuristicExtractor(), workers=1)
+    assert propose(db, v.id).get("age_roles") == 2
+    by_char = {db.get(Character, i.proposal["character_id"]).canonical_name: i
+               for i in db.scalars(select(ReviewItem).where(ReviewItem.reason_code == "age_roles"))}
+    assert set(by_char) == {"MEENA", "RUPA"}       # FATHER is an adult: the same actor after 8 years
+    roles = by_char["MEENA"].proposal["roles"]
+    assert [r["name"] for r in roles] == ["MEENA — YOUNG", "MEENA — AFTER TIME JUMP"]
+    assert _scene_numbers(db, roles[1]["appearance_ids"]) == [3, 4]

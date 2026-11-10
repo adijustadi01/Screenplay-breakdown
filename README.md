@@ -198,6 +198,15 @@ when one person will play both, for example with make-up or VFX de-ageing (the 2
 "ARJUN — YOUNG + MIDDLE-AGED (28, 50)"), or click **Same actor for all** to keep one actor. **Decline** leaves
 everything as it is. Changed your mind? Open the item under *resolved*, click **Undo** and choose again.
 
+**Ways of writing an age the app understands:** "GEETA (10)", "(10 years)", "(10 saal)", "(age 10)",
+"(aged about 10)", "(CHILD - 10)", "(early 20s)", "(late teens)", "Geeta, 10,", "Geeta - 10 yrs",
+"10-year-old Geeta", "a ten-year-old Geeta", "Geeta, a 10-year-old girl", "now a young woman of 19",
+"little / young / child / teenage / chhoti / grown up / old Geeta", and "(CHILD)", "(YOUNG)" after a name.
+**Time jumps count too:** if a child is "YOUNG GEETA" (or 10) before "EIGHT YEARS LATER" and no age is
+written after it, the later scenes are offered as "GEETA — AFTER TIME JUMP". This is only done for
+children and teens; adults are the same actor across a jump. If the script writes **no age and no time
+jump at all**, the app cannot know, and you set it yourself with **Played by**.
+
 Ages close together are never split: 30, 35 and 40 stay one actor. The app only *suggests* a split when
 children are 4+ years apart or adults 15+ years apart, and nothing is guessed: a scene whose age is unclear
 is left for you to set with the **Played by** drop-down in the *Scenes* tab.
