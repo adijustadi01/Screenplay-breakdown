@@ -31,6 +31,18 @@ def parse_cue(cue_text: str) -> tuple[str, set[str]]:
     return normalize_name(name), exts
 
 
+_DUAL_RE = re.compile(r"\s*(?:/|&|\+)\s*|\s+AND\s+")
+
+
+def split_cue(name: str) -> list[str]:
+    """A shared cue names every speaker: "SAVITRI / KAMLA", "RAJ & SIMRAN", "A AND B" -> both.
+    Each of them says the line, so each gets the dialogue block."""
+    parts = [p.strip(" .,") for p in _DUAL_RE.split(name)]
+    if len(parts) >= 2 and all(len(p) >= 2 and p[0].isalpha() for p in parts):
+        return [normalize_name(p) for p in parts]
+    return [name]
+
+
 def cue_presence(exts: set[str]) -> Presence:
     if exts & VOICE_EXT:
         return Presence.VOICE_ONLY
@@ -62,11 +74,12 @@ def scene_cues(elements) -> dict[str, CueFacts]:
     for e in elements:
         if e.element_type != ElementType.CHARACTER:
             continue
-        name, exts = parse_cue(e.text)
-        if not name:
-            continue
-        f = out.setdefault(name, CueFacts(name, first_element_id=e.id))
-        f.dialogue_blocks += 1
-        f.presences.add(cue_presence(exts))
-        f.cue_texts.append(e.text)
+        whole, exts = parse_cue(e.text)
+        for name in split_cue(whole):
+            if not name:
+                continue
+            f = out.setdefault(name, CueFacts(name, first_element_id=e.id))
+            f.dialogue_blocks += 1
+            f.presences.add(cue_presence(exts))
+            f.cue_texts.append(e.text)
     return out

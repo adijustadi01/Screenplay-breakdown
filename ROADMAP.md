@@ -92,13 +92,18 @@ revision asterisks and coloured pages from PDFs as extra evidence; (Excel and PD
 
 **Added after Stage 3**
 - ✅ Built-in dictionary (WordNet) for the free reader: people vs objects, animals and sounds (`app/lexicon`).
+- ✅ Offline reader v3: grammar tagger + dictionary categories; people found in action lines; shared cues;
+  in-scene vs only-referred-to; dictionary-driven props, costumes, vehicles, animals, instruments and
+  background people; wider action / make-up / sound rules (`app/lexicon`, `extraction/names.py`,
+  `departments/heuristic.py`).
 - ✅ Age-based casting roles: one character at clearly different ages → one casting role per age, proposed
   for review (`app/reconciliation/ages.py`).
 
 **Known limitations to revisit (from Stage 1)**
 - Live Claude extraction accuracy has not been measured in the build environment (no API key
-  there). Measure it with `python -m app.cli accuracy` after a Claude run; the offline rules
-  extractor scores 97% precision/recall on the sample but will do worse on messy real scripts.
+  there). Measure it with `python -m app.cli accuracy` after a Claude run. The offline reader scores
+  97% precision/recall on the cast sample and is tested on a realistic script it was not tuned to
+  (`samples/mitti_ke_sher.fountain`); it has not been measured on a full real production script.
 - Extraction runs one request per scene; the Batch API (50% cost) is a possible later option.
 - DOCX/FDX/Fountain page breaks are computed (~55 lines/page) and break between
   elements, so lengths can differ slightly from Final Draft's own pagination. FDX files that

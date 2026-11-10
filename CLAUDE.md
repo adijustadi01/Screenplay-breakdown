@@ -18,10 +18,22 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
   and `pdf.py` (reportlab) write them. Routes: `GET /api/script-versions/{id}/export.xlsx|.pdf?sections=a,b`
   and `.../export/sections`. In the UI, the download window is `frontend/src/components/ExportDialog.tsx`,
   opened from the top-bar button, which is always visible.
-- **Built-in dictionary (no API key):** `backend/app/lexicon/` holds Princeton WordNet nouns (built by
-  `backend/tools/build_lexicon.py`) so the free reader knows people from objects ("A MIRROR" is not cast;
-  "A FAKIR", "THE GOONS" are). Any no-dialogue "character" the dictionary calls a thing is flagged
-  `looks_like_object`, on the Claude path too. `EXTRA_PEOPLE` / `EXTRA_GROUPS` there add Indian/film words.
+- **Offline reader (no API key) — the user cannot use an API key, so this is THE reader for them:**
+  - `backend/app/lexicon/`: `words.tsv.gz` = Princeton WordNet word forms with person/group/animal/thing code,
+    department tag ("veh:truck", "prop:weapon", "cos:accessory", "animal:dog", "inst", "body"), singular lemma and
+    parts of speech; built by `backend/tools/build_lexicon.py` (STOP, EXTRA, NOT_PEOPLE, PLURAL_ONLY lists there are
+    hand-checked; rebuild needs the raw WordNet 3.0 folder). `tagger.py` + `tagger.json.gz` = pure-Python averaged
+    perceptron POS tagger (NLTK English model, MIT). `grammar.py` = `read()` (tags + screenplay fixes: present-tense
+    verbs mistaken for plurals, CAPS words, direction words) and `noun_groups()` (head noun, modifiers, number, owner).
+  - `backend/app/extraction/names.py` finds people in action lines (CAPS, Title-Case names, roles); `cues.split_cue`
+    splits shared cues; `heuristic_extractor._mention_kind` decides there / depicted / owner-only.
+  - `backend/app/departments/heuristic.py`: `dictionary_finds()` adds dictionary-driven props/costumes/vehicles/
+    animals/instruments/background on top of each department's small `lexicon`; `_word_list_match_ok` stops verb
+    and "truck stop" false hits; holders are the nearest person, pronouns carry the last single person named.
+  - Confidence 0.7+ = not put on To check (sure cases only); everything else is flagged. Never invent quantities.
+  - Tests: `tests/test_offline_reader.py` on `samples/mitti_ke_sher.fountain` (a script the lists were not tuned to).
+    Check `python -m app.cli accuracy|dept-accuracy` on the older samples does not drop when changing rules.
+  - Any no-dialogue "character" the dictionary calls a thing is flagged `looks_like_object`, on the Claude path too.
 - **Age-based casting roles:** `backend/app/reconciliation/ages.py` reads ages from the text
   ("ARJUN (6)" … "TWENTY YEARS LATER" … "ARJUN (28)"), carries them forward until a time jump, and proposes
   one casting role per age group (one character, separate actors). Proposal action `age_roles`, undoable.
@@ -54,7 +66,7 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 
 ## Run and test
 ```bash
-cd backend && pip install -e ".[dev]" && python -m pytest -q            # 235 tests
+cd backend && pip install -e ".[dev]" && python -m pytest -q            # 266 tests
 cd frontend && npm ci && npm run build
 cd backend && python -m uvicorn app.main:app --port 8000                  # open http://localhost:8000
 ```

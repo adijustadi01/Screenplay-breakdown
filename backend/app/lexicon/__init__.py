@@ -1,7 +1,9 @@
 """Built-in English dictionary: is this word a person, a group of people, an animal or a thing?
 
-Works offline with no API key. The data is Princeton WordNet 3.0 (about 235,000 noun forms,
-plurals included), pre-built into nouns.tsv.gz by tools/build_lexicon.py. A short list of
+Works offline with no API key. The data is Princeton WordNet 3.0 (about 286,000 word forms,
+plurals and verb endings included), pre-built into words.tsv.gz by tools/build_lexicon.py. Each noun
+also carries what a production department would call it ("veh:truck", "prop:weapon", "cos:accessory",
+"animal:dog"), taken from the dictionary's "is a kind of" tree: see entry(). A short list of
 words WordNet lacks or gets wrong for Indian and film scripts (PANDIT, DHOBI, AUNTY, GANG...) is kept
 below and always wins.
 
@@ -39,13 +41,53 @@ EXTRA_GROUPS = {"GANG", "GANGS", "CROWD", "CROWDS", "MOB", "MOBS", "CREW", "CREW
 
 @lru_cache(maxsize=1)
 def _words() -> dict[str, str]:
-    path = Path(__file__).with_name("nouns.tsv.gz")
+    """form -> "code<TAB>tag<TAB>lemma<TAB>pos" (see tools/build_lexicon.py)."""
+    path = Path(__file__).with_name("words.tsv.gz")
     out: dict[str, str] = {}
     with gzip.open(path, "rt", encoding="utf-8") as f:
         for line in f:
-            word, _, code = line.rstrip("\n").partition("\t")
-            out[word] = code
+            word, _, rest = line.rstrip("\n").partition("\t")
+            out[word] = rest
     return out
+
+
+def entry(word: str) -> tuple[str, str, str, str] | None:
+    """(code, tag, lemma, pos) for one word form, or None when it is not an English word.
+
+    code: P person, p maybe person, G group, A animal, O other noun, "" not a noun
+    tag: "veh:car", "animal:dog", "cos:accessory", "prop:weapon", "inst", "body" or ""
+    lemma: the singular when the form is a plural ("knives" -> "knife"), else ""
+    pos: letters among n (noun) v (verb) z (verb with -s) w (other verb form) a (adjective) r (adverb)
+    """
+    rest = _words().get(word.strip(" .,").replace("’", "'").lower())
+    if rest is None:
+        return None
+    code, tag, lemma, pos = rest.split("\t")
+    return code, tag, lemma, pos
+
+
+# The dictionary has no grammar words (pronouns, prepositions...): they are English too.
+FUNCTION_WORDS = frozenset("""
+a an the this that these those i me my mine myself we us our ours ourselves you your yours yourself yourselves
+he him his himself she her hers herself it its itself they them their theirs themselves who whom whose which what
+whatever whoever where when why how whenever wherever and or but nor so yet for if then than because although though
+while whereas unless until since once as of in on at by to from with without within into onto upon over under above
+below between among through during before after about against around across along behind beside besides beyond
+toward towards near off out up down away is am are was were be been being have has had having do does did doing
+done will would shall should can could may might must ought not no yes none all any both each every either neither
+few many much more most several some such only own same other another others one ones two three four five six
+seven eight nine ten eleven twelve hundred thousand first second third next last very too also just even still
+again ever never always often sometimes here there now today tonight tomorrow yesterday ok okay oh ah hey hi hello
+mr mrs ms dr sir madam everyone everybody someone somebody anyone anybody nobody nothing something anything
+everything else per via etc
+""".split())
+
+
+def is_english(word: str) -> bool:
+    """True when the word is English at all (any part of speech, grammar words included)."""
+    w = word.strip(" .,").replace("’", "'")
+    return (w.lower() in FUNCTION_WORDS or entry(w) is not None or w.upper() in EXTRA_PEOPLE
+            or w.upper() in EXTRA_GROUPS)
 
 
 def _one(word: str) -> str | None:
@@ -56,8 +98,8 @@ def _one(word: str) -> str | None:
         return "group"
     if w in EXTRA_PEOPLE:
         return "person"
-    code = _words().get(w.lower())
-    return _CODES[code] if code else None
+    e = entry(w)
+    return _CODES[e[0]] if e and e[0] else None
 
 
 def kind_of(phrase: str) -> str | None:

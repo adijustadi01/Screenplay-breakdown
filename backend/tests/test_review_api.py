@@ -37,27 +37,29 @@ def test_review_flow(tmp_path, monkeypatch):
     sev = [i["severity"] for i in q["items"]]
     assert sev == sorted(sev, key=["error", "warning", "info"].index)   # flagged items first
 
-    # The photograph trap: heuristic marks VIKRAM present in scene 7 — find and fix it.
+    # The photograph trap: VIKRAM is only in a photograph in scene 7. The offline reader now sees that
+    # ("a framed photograph: ... Vikram and Arjun, decades ago") and files him as mentioned, flagged.
     scenes = c.get(f"/api/script-versions/{vid}/scenes").json()
     sc7 = next(s for s in scenes if s["scene_number"] == "7")
     bd = c.get(f"/api/scenes/{sc7['id']}/breakdown").json()
     vik = next(a for a in bd["appearances"] if a["character_name"] == "VIKRAM")
-    assert vik["presence"] == "present"
+    assert vik["presence"] == "mentioned"
     item = next(i for i in c.get(f"/api/projects/{pid}/review", params={"scene_id": sc7["id"]}).json()["items"]
                 if i["entity_table"] == "appearances" and i["entity_id"] == vik["id"])
     detail = c.get(f"/api/review/{item['id']}").json()
     assert any(e["highlight"] for e in detail["source"]["elements"])          # exact passage shown
+    # The AD can still overrule it (say the director wants him on set): counts follow the correction.
     before = c.get(f"/api/script-versions/{vid}/reports/characters").json()
     vb = next(x for x in before["characters"] if x["name"] == "VIKRAM")
-    r = c.post(f"/api/review/{item['id']}", json={"action": "edit", "changes": {"presence": "mentioned"},
-                                                  "note": "only in the photograph"})
+    r = c.post(f"/api/review/{item['id']}", json={"action": "edit", "changes": {"presence": "present"},
+                                                  "note": "director wants him in the room"})
     assert r.status_code == 200 and r.json()["status"] == "resolved"
     after = c.get(f"/api/script-versions/{vid}/reports/characters").json()
     va = next(x for x in after["characters"] if x["name"] == "VIKRAM")
-    assert va["appearances"]["count"] == vb["appearances"]["count"] - 1
-    assert va["mentioned_only"]["count"] == vb["mentioned_only"]["count"] + 1
+    assert va["appearances"]["count"] == vb["appearances"]["count"] + 1
+    assert va["mentioned_only"]["count"] == vb["mentioned_only"]["count"] - 1
     hist = c.get(f"/api/facts/appearances/{vik['id']}/history").json()
-    assert hist[-1]["action"] == "edit" and hist[-1]["before"]["presence"] == "present"
+    assert hist[-1]["action"] == "edit" and hist[-1]["before"]["presence"] == "mentioned"
 
     # Add the missed group by hand.
     sc12 = next(s for s in scenes if s["scene_number"] == "12")

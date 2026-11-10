@@ -15,15 +15,18 @@ hidden = (collect_submodules("app") + collect_submodules("uvicorn") + collect_su
 datas = [
     (os.path.join(ROOT, "backend", "app", "extraction", "prompts"), "app/extraction/prompts"),
     (os.path.join(ROOT, "backend", "app", "departments", "prompts"), "app/departments/prompts"),
-    # Built-in English dictionary (people vs things) for the free reader.
-    (os.path.join(ROOT, "backend", "app", "lexicon", "nouns.tsv.gz"), "app/lexicon"),
+    # Built-in English dictionary and grammar tagger for the free (offline) reader.
+    (os.path.join(ROOT, "backend", "app", "lexicon", "words.tsv.gz"), "app/lexicon"),
+    (os.path.join(ROOT, "backend", "app", "lexicon", "tagger.json.gz"), "app/lexicon"),
     (os.path.join(ROOT, "backend", "app", "lexicon", "WORDNET_LICENSE.txt"), "app/lexicon"),
+    (os.path.join(ROOT, "backend", "app", "lexicon", "TAGGER_LICENSE.txt"), "app/lexicon"),
     (os.path.join(ROOT, "frontend", "dist"), "frontend_dist"),
     (os.path.join(ROOT, "samples", "monsoon_ledger.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "highway_song.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "monsoon_ledger_rev_blue.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "river_years.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "three_ages.fountain"), "samples"),
+    (os.path.join(ROOT, "samples", "mitti_ke_sher.fountain"), "samples"),
 ]
 datas += collect_data_files("docx") + collect_data_files("reportlab")
 tess = os.environ.get("TESSERACT_DIR")

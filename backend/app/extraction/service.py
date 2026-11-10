@@ -51,8 +51,9 @@ from ..models.enums import (
     Severity,
     Speaking,
 )
-from .cues import normalize_name, parse_cue, scene_cues
+from .cues import normalize_name, parse_cue, scene_cues, split_cue
 from .heuristic_extractor import intro_names
+from .names import discover_names
 from .schema import CharacterOut, SceneExtraction
 
 REVIEW_CONFIDENCE = 0.7
@@ -115,10 +116,14 @@ def run_extraction(
         if e.scene_id:
             by_scene.setdefault(e.scene_id, []).append(e)
 
-    cue_names = {parse_cue(e.text)[0] for e in all_els if e.element_type == ElementType.CHARACTER} - {""}
-    intros = intro_names([e.text for e in all_els if e.element_type == ElementType.ACTION])
+    cue_names = {n for e in all_els if e.element_type == ElementType.CHARACTER
+                 for n in split_cue(parse_cue(e.text)[0])} - {""}
     loc_names = sorted({s.location_raw for s in session.scalars(
         select(Scene).where(Scene.script_version_id == version_id)) if s.location_raw})
+    actions = [e.text for e in all_els if e.element_type == ElementType.ACTION]
+    intros = intro_names(actions)
+    # People the script names without a cue of their own ("Dadi sits...", "SAVITRI and KAMLA jog").
+    intros |= discover_names(actions, cue_names | intros, loc_names)
     extractor.set_script_context(sorted(cue_names), loc_names, sorted(intros))
 
     run = ExtractionRun(script_version_id=version_id, kind=RunKind.SCENE_EXTRACTION,

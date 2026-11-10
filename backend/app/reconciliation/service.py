@@ -81,6 +81,27 @@ def propose(session: Session, version_id: int) -> dict[str, int]:
                     {"action": "merge_character", "from_id": short.id, "into_id": c.id}, 0.85,
                     ("characters", short.id))
 
+    # SAVITRI <- SAVITRI KUMARI, MEHRA <- COACH MEHRA: a single name that is the first or last
+    # word of exactly one longer name (and is not an ordinary English word).
+    from ..lexicon import is_english
+    longer: dict[str, list[Character]] = {}
+    for c in chars:
+        toks = c.canonical_name.split()
+        if len(toks) > 1 and toks[0] not in VERSION_WORDS:
+            for t in {toks[0], toks[-1]}:
+                longer.setdefault(t, []).append(c)
+    for c in chars:
+        name = c.canonical_name
+        if " " in name or is_english(name) or len(longer.get(name, [])) != 1:
+            continue
+        full = longer[name][0]
+        if full.id == c.id or full.canonical_name.split()[0] in TITLES and full.canonical_name.split()[-1] == name:
+            continue                    # titles are handled above
+        add(f"merge_char:{c.id}:{full.id}", "character_alias",
+            f"'{name}' ({scenes_of(c)}) is probably the same person as '{full.canonical_name}' "
+            f"({scenes_of(full)}). Accept to merge into {full.canonical_name}.",
+            {"action": "merge_character", "from_id": c.id, "into_id": full.id}, 0.75, ("characters", c.id))
+
     seen_pairs = set()
     for i, a in enumerate(chars):
         for b in chars[i + 1:]:

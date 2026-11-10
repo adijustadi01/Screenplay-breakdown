@@ -79,11 +79,14 @@ ringing, temple bells, a gunshot off screen, monitors beeping). Not general back
 - Scripted sounds: one item per sound ("PHONE RINGS", "TEMPLE BELLS").
 """,
     lexicon={
-        "song": ("lullaby", "sings", "singing", "song"),
+        "song": ("lullaby", "sings", "singing", "song", "national anthem", "anthem", "bhajan", "qawwali", "hums",
+                 "humming"),
         "dance": ("dances", "dancing"),
         "instrument": ("dhol", "drums", "tabla", "guitar", "flute", "sitar", "harmonium", "shehnai"),
         "scripted_sound": ("siren wailing", "sirens", "siren", "phone rings", "rings", "gunshot", "temple bells",
-                           "bells", "beeps", "barks", "bark", "thunder", "screech"),
+                           "bells", "beeps", "barks", "bark", "thunder", "screech", r"blows (?:the|a|his|her) whistle",
+                           "whistles", "roars?", "cheers?", "applause", "clapping", "banging", "knock(?:s|ing)?",
+                           "honks?", "horn blares", "crows", "alarm", "screams?", "thud", "gunshots"),
     },
     derive=_derive,
     offline_category_names=("song", "dance"),

@@ -175,12 +175,47 @@ Compare drafts (= Revisions), and Import details (= Import & coverage, the advan
 | **Revisions** | 3 | Import the revised draft into the same project (it becomes current), then **Compare** with the previous draft. Unchanged scenes keep your reviewed facts; extract only the changed/added scenes with one click. See which scenes changed and, per scene, the cast (characters) and casting roles, locations and department items added, removed or re-quantified. Also shown: the text diff, script-wide changes, and scheduled scenes affected. Doubtful matches can be re-matched by hand. |
 | **Schedule** | 3 | **Infer story days**, which you can correct in the Story days table. Create a schedule and add shooting days (with dates), or click **Suggest days** for a starting point grouped by location and day/night. Assign scenes from the unscheduled pool; scenes can be split across days. The **Story time vs shooting time** panel, **one-liner** and **DOOD** follow. **Create missing casting roles** firms up implicit DOOD rows, and **Carry schedule forward** moves a schedule onto a revised draft. |
 
-### The free reader (no API key) and the built-in dictionary
+### The free reader (no API key): how it understands a script offline
 
-Without an API key the app uses its own reader. It has a built-in English dictionary (about 235,000
-words, from Princeton WordNet), so it knows people from things: "A MIRROR", "A KNIFE", "TWO JEEPS" or
-"THE GUNSHOT" are not put in the cast, but "A FAKIR", "A WARD BOY" or "THREE VILLAGERS" are. If a
-"character" never speaks and the dictionary says it is an object, it goes on the *To check* list as
+Without an API key the app uses its own reader. Nothing is sent anywhere and no internet is needed. It
+is built from three things that ship inside the app:
+
+1. **A dictionary of about 286,000 English word forms** (Princeton WordNet) that knows what each word
+   *is*: a person, a group, an animal, or a thing, and for things which department cares: a "tonga" is an
+   animal-drawn vehicle, "clippers" a prop, a "singlet" sportswear, a "lathi" a weapon, a "dhol" an
+   instrument. Indian words the dictionary lacks (kurta, charpai, tiffin, langot, bidi...) are added by hand.
+2. **A grammar tagger** that reads the whole sentence, so it knows a thing from an action: "the phone
+   **rings**" is a sound, "her **rings**" are jewellery; "a rooster **crows**" is not a flock of crows;
+   "a **truck** stop" is not a truck.
+3. **Rules for how screenplays are written**, all plain code, so the same script always gives the same answer.
+
+What that buys you:
+
+- **Cast.** Speaking characters come from the dialogue cues. People without a cue are found in the action
+  lines: names in CAPITALS ("His daughters SAVITRI and KAMLA"), names never in capitals ("Dadi sits on a
+  charpai", "Masterji hurries over"), and roles ("The REFEREE", "a RUSSIAN WRESTLER"). A shared cue
+  ("SAVITRI / KAMLA") counts for both. "Mehra" is matched to COACH MEHRA. Objects in capitals ("A MIRROR"),
+  places ("in Lahore") and words on a sign are not people.
+- **In the scene, or only referred to?** "A photograph of Baldev's father" does not put Baldev in the
+  scene (*mentioned*); "Arjun's house" alone is flagged *not sure*; "Kamla's eyes fill with tears" does.
+- **Props, costumes, vehicles, animals, instruments** are found from the whole dictionary, not a short
+  list, with quantities when stated ("three trucks", "two hens") and never guessed otherwise. Costumes and
+  make-up are filed under the person nearest in the sentence ("SAVITRI — SINGLET"); "He..." / "She..." is
+  taken to mean the last person named and flagged for a check.
+- **Background people**: "hundreds of spectators" (number unknown, flagged), "a dozen neighbours" (12),
+  "two paramedics", and one-off bit parts ("a teacher rings the bell", "a security guard") so they can be
+  cast. "BALDEV, a former wrestler, ..." describes Baldev and is not counted.
+- **Action, make-up and sound** have wider word lists (wrestling and fights, falls, stunts, mud, blood,
+  haircuts, ageing, crowd roars, whistles, anthems), and check the sentence: "shoots for the legs" is not
+  gunfire, and a braid that "falls" is not a stunt fall.
+- **Less to check.** When the reader is sure (a speaking character named as doing something; an object
+  that can only be that object) the item is not put on the *To check* list. Everything else still is.
+
+It is still not a person or an AI model: it cannot follow a long "she... she... she" chain reliably, read
+between the lines, or understand Hindi dialogue. Treat *To check* as the place where you finish its work.
+Try it with `samples/mitti_ke_sher.fountain`, written in a realistic style the reader was not tuned to.
+
+If a "character" never speaks and the dictionary says it is an object, it goes on the *To check* list as
 *Looks like an object, not a person*, even when Claude did the reading.
 
 ### One character, different ages → the director chooses the actors
@@ -328,6 +363,8 @@ More options:
 | `samples/monsoon_ledger.fountain` (+ PDF, scanned PDF, FDX, DOCX, plain DOCX) | 15 scenes covering Stage 1 traps: CONTINUOUS/LATER, DUSK/DAWN, 8A, OMITTED, an unnumbered scene, a heading with no INT/EXT, a location spelling variant, a villain who is only mentioned, a silent grandmother, O.S. and V.O., Young/Adult Arjun, a cue alias, and "a huge crowd". Answer key: `monsoon_ledger.ground_truth.json`. |
 | `samples/highway_song.fountain` | 8 scenes for every department: one recurring jeep plus three jeeps together, a song with 200 dancers, animals, a fight, fall, explosion and rain, period costume, ageing, prosthetics, disguise, continuity states. Answer key: `highway_song.ground_truth.json`. |
 | `samples/monsoon_ledger_rev_blue.fountain` | A revised draft: a cut character, changed dialogue, Sharma and a jeep added, a car-to-taxi location change, an omitted scene and a new 9A. Expected diff: `monsoon_ledger_rev_blue.expected.json`. |
+| `samples/mitti_ke_sher.fountain` | 11 scenes in a realistic Indian sports-drama style for the offline reader: a lead with no cue of her own, names never in capitals, a shared cue, bit parts, a time jump, and props, costumes, vehicles and animals outside the old word lists. Checked by `tests/test_offline_reader.py`. |
+| `samples/river_years.fountain`, `samples/three_ages.fountain` | One character at different ages (6 and 28; 10, 28 and 50) for the age-based casting roles. |
 | `samples/build_long_sample.py` | Builds a ~305-page synthetic script (`--scanned` for an image-only version) for load testing. |
 
 Rebuild the format variants with `python samples/build_samples.py`.
@@ -358,8 +395,9 @@ pytest tests/test_stage1_acceptance.py tests/test_stage2_acceptance.py tests/tes
 - **Claude accuracy is unmeasured here.** It hasn't been measured on real scripts in the build
   environment, which had no API key. Use the `accuracy` and `dept-accuracy` commands on the samples,
   then spot-check a real script.
-- **The offline extractor is a baseline.** It was tuned on the samples, can't resolve pronouns or
-  tell a photograph from a person, and flags everything it finds.
+- **The offline reader is not an AI model.** It reads grammar and uses a dictionary, but it does not
+  understand the story: long pronoun chains, implied things and Hindi dialogue are beyond it. It flags
+  whatever it is not sure of.
 - **Pagination of non-PDF formats is computed.** DOCX/FDX/Fountain pages are computed at ~55
   lines/page, so lengths may differ slightly from Final Draft's own figures, unless the .fdx
   carries them.
@@ -371,6 +409,7 @@ pytest tests/test_stage1_acceptance.py tests/test_stage2_acceptance.py tests/tes
 
 ```
 backend/app/
+  lexicon/          built-in dictionary + grammar tagger for the offline reader
   importers/        PDF (text + OCR) / DOCX / FDX / Fountain, coverage check
   scene_detection/  headings, scene numbers, pages, 1/8-page lengths
   extraction/       Stage 1 per-scene extraction (Claude + offline), verification, accuracy

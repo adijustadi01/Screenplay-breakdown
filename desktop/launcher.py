@@ -161,8 +161,11 @@ Arjun walks into the rain.
 def smoke(port: int) -> int:
     import httpx
 
-    from app.lexicon import kind_of
+    from app.lexicon import entry, kind_of
+    from app.lexicon.grammar import read
     assert kind_of("MIRROR") == "thing" and kind_of("CONSTABLE") == "person", "built-in dictionary missing"
+    assert entry("tonga")[1] == "veh:animal_drawn", "dictionary categories missing"
+    assert [t.tag for t in read("The phone rings.")][2] == "VBZ", "grammar tagger missing"
     c = httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=120)
     assert c.get("/api/health").json()["status"] == "ok"
     assert "<html" in c.get("/").text.lower(), "UI not served"
