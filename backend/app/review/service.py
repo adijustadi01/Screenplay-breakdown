@@ -127,8 +127,18 @@ def edit_fact(session: Session, table: str, entity_id: int, changes: dict[str, A
         raise ReviewError("no changes given")
     obj = _get(session, table, entity_id)
     before = snapshot(obj)
-    for field, value in changes.items():
-        setattr(obj, field, _coerce(table, field, value))
+    values = {field: _coerce(table, field, value) for field, value in changes.items()}
+    if table == "appearances":
+        if "character_id" in values and values["character_id"] != obj.character_id and "casting_role_id" not in values:
+            values["casting_role_id"] = None        # a different person: the old casting role no longer fits
+        rid = values.get("casting_role_id", obj.casting_role_id)
+        if rid is not None:
+            from ..models import CastingRole
+            role = session.get(CastingRole, rid)
+            if role is None or role.character_id != values.get("character_id", obj.character_id):
+                raise ReviewError("that casting role belongs to a different character")
+    for field, value in values.items():
+        setattr(obj, field, value)
     if table == "appearances" and "presence" in changes and obj.presence == Presence.MENTIONED:
         obj.speaking = Speaking.SILENT if obj.dialogue_block_count == 0 else obj.speaking
     if table in HAS_PROVENANCE:
@@ -219,7 +229,7 @@ def act_on_item(session: Session, item_id: int, action: str, actor: str, changes
     if item.proposal:
         if action == "accept":
             try:
-                record = apply_proposal(session, item.proposal, actor)
+                record = apply_proposal(session, item.proposal, actor, changes)
             except ProposalError as exc:
                 raise ReviewError(str(exc)) from exc
             item.proposal = {**item.proposal, "applied": record}

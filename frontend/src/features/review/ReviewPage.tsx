@@ -40,6 +40,7 @@ const REASONS: Record<string, string> = {
   no_usable_time: "No time of day given",
   inferred: "Inferred — please check",
 };
+const ACTOR_LETTERS = ["A", "B", "C", "D", "E", "F"];
 const reasonLabel = (r: string) => REASONS[r] ?? r.replace(/_/g, " ");
 
 /** The review queue: flagged and low-confidence items first, each beside its exact source passage. */
@@ -55,6 +56,7 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [actors, setActors] = useState<string[]>([]);   // age_roles: which actor plays each age
 
   const load = useCallback(() => {
     const q = new URLSearchParams({ version_id: String(versionId), status });
@@ -69,15 +71,21 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
   useEffect(load, [load]);
   useEffect(() => {
     setChanges({}); setNote(""); setErr("");
-    if (sel) api.get<any>(`/api/review/${sel}`).then(setDetail); else setDetail(null);
+    if (sel) api.get<any>(`/api/review/${sel}`).then((d) => {
+      setDetail(d);
+      // Default: a separate actor for every age (the app's suggestion).
+      setActors((d.proposal?.roles ?? []).map((_: any, i: number) => ACTOR_LETTERS[i]));
+    }); else setDetail(null);
   }, [sel]);
 
-  const act = async (action: string) => {
+  const act = async (action: string, extra?: Record<string, unknown>) => {
     setErr("");
     try {
       const body: any = { action, note: note || undefined };
       if (action === "edit") body.changes = changes;
+      if (extra) body.changes = extra;
       await api.post(`/api/review/${sel}`, body);
+      if (action === "undo" && sel) api.get<any>(`/api/review/${sel}`).then(setDetail);
       const idx = data.items.findIndex((i: any) => i.id === sel);
       const next = data.items[idx + 1]?.id ?? null;
       load(); onChanged(); setSel(action === "undo" ? sel : next);
@@ -141,10 +149,14 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
               Fact: <b>{detail.entity.character_name}</b> — {detail.entity.presence}, {detail.entity.speaking}; extracted by {detail.entity.extracted_by}; evidence “{detail.entity.source_excerpt}”</p>}
             {err && <p className="error">{err}</p>}
             {detail.status === "open" && (detail.has_proposal ? (
+              detail.proposal?.action === "age_roles" ? (
+                <AgeRolesChoice roles={detail.proposal.roles} actors={actors} setActors={setActors}
+                                onAccept={() => act("accept", { actors })} onDecline={() => act("decline")} />
+              ) : (
               <div className="row">
-                <button className="btn primary" onClick={() => act("accept")}>{detail.proposal?.action === "age_roles" ? "Accept — separate actors" : "Accept merge"}</button>
+                <button className="btn primary" onClick={() => act("accept")}>Accept merge</button>
                 <button className="btn" onClick={() => act("decline")}>Decline</button>
-              </div>
+              </div>)
             ) : (
               <>
                 {detail.editable_fields.length > 0 && <div className="row small">
@@ -170,11 +182,49 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
                 </div>
               </>
             ))}
-            {detail.can_undo && <button className="btn" onClick={() => act("undo")}>Undo this merge</button>}
+            {detail.can_undo && <button className="btn" onClick={() => act("undo")}>{detail.proposal?.action === "age_roles" ? "Undo (choose the actors again)" : "Undo this merge"}</button>}
             {detail.source && <><h3>Source passage</h3><ScriptText elements={detail.source.elements} /></>}
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+
+/** "Who plays which age?" — the app suggests one actor per age; the director may give several ages
+ *  to one actor (e.g. de-aged with VFX) or keep a single actor for all of them. */
+function AgeRolesChoice({ roles, actors, setActors, onAccept, onDecline }: {
+  roles: any[]; actors: string[]; setActors: (a: string[]) => void; onAccept: () => void; onDecline: () => void;
+}) {
+  const letters = ACTOR_LETTERS.slice(0, roles.length);
+  const distinct = new Set(actors).size;
+  const pick = (i: number, v: string) => setActors(actors.map((a, j) => (j === i ? v : a)));
+  return (
+    <div className="panel" style={{ background: "#f7f9fc" }}>
+      <b>Who plays which age?</b>
+      <p className="small muted" style={{ margin: "4px 0 8px" }}>
+        Each age has its own actor unless you choose otherwise. Give two ages the same actor if one person
+        will play both (for example with make-up or VFX de-ageing).</p>
+      <table>
+        <thead><tr><th>Age</th><th className="num">Scenes</th><th>Played by</th></tr></thead>
+        <tbody>{roles.map((r: any, i: number) => (
+          <tr key={i}>
+            <td>{r.name}</td>
+            <td className="num">{r.scene_count ?? r.appearance_ids.length}</td>
+            <td><select value={actors[i] ?? letters[i]} onChange={(e) => pick(i, e.target.value)}>
+              {letters.map((l) => <option key={l} value={l}>Actor {l}</option>)}</select></td>
+          </tr>))}</tbody>
+      </table>
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="btn primary" onClick={onAccept}>
+          {distinct === 1 ? "Accept — one actor for all ages" : `Accept — ${distinct} actors`}</button>
+        <button className="btn" onClick={() => setActors(roles.map(() => "A"))}>Same actor for all</button>
+        <button className="btn" onClick={() => setActors(roles.map((_: any, i: number) => letters[i]))}>Reset</button>
+        <button className="btn" onClick={onDecline}>Decline (leave as it is)</button>
+      </div>
+      <p className="small muted">You can change this later: open this item under "resolved", click Undo, and choose again.
+        Scenes whose age is not clear can be set in the Scenes tab ("Played by").</p>
     </div>
   );
 }

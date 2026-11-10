@@ -135,6 +135,9 @@ def catalog(ctx: Context) -> list[dict[str, Any]]:
          "In the PDF this is one breakdown sheet per scene."),
         ("scene_summary", "Scene counts (INT/EXT × time of day)", "Reports", has_scenes, None),
         ("characters", "Characters", "Reports", has_cast, None),
+        ("cast_by_role", "Characters by age / actor", "Reports",
+         any(c["by_role"] for c in ctx.chars["characters"]),
+         "Scenes per actor when one character is played at different ages (child, young, middle-aged...)."),
         ("locations", "Locations", "Reports", bool(ctx.locs["locations"]), None),
         ("combinations", "Who appears together", "Reports", has_cast, "Pairs of characters and their shared scenes."),
         ("character_time", "Character × time of day", "Reports", has_cast, None),
@@ -298,6 +301,28 @@ def _characters(ctx: Context) -> Table:
                       "voice-over and mentions are counted separately.", check_col="Check?")
 
 
+def _cast_by_role(ctx: Context) -> Table:
+    rows = []
+    for c in ctx.chars["characters"]:
+        if not c["by_role"]:
+            continue
+        fa, la = c["first_appearance"], c["last_appearance"]
+        rows.append([c["name"], "ALL AGES (total)", c["appearances"]["count"], eighths(c["eighths"]),
+                     c["speaking"]["count"], (fa["number"] or f"#{fa['seq']}") if fa else "",
+                     (la["number"] or f"#{la['seq']}") if la else "", ctx.scene_list(c["appearances"]), ""])
+        for r in c["by_role"]:
+            fa, la = r["first_appearance"], r["last_appearance"]
+            rows.append(["", r["name"], r["appearances"]["count"], eighths(r["eighths"]), r["speaking"]["count"],
+                         fa["number"] or f"#{fa['seq']}", la["number"] or f"#{la['seq']}",
+                         ctx.scene_list(r["appearances"]), CHECK if r["casting_role_id"] is None else ""])
+    return Table("cast_by_role", "Characters by age / actor",
+                 ["Character", "Played as (actor)", "Scenes", "Pages", "Speaking in", "First scene", "Last scene",
+                  "Scene numbers", "Check?"], rows,
+                 widths={"Character": 22, "Played as (actor)": 40, "Scene numbers": 50},
+                 note="The first line of each character is the total; the lines under it are each actor "
+                      "(age). A scene with both ages in it counts once in the total.", check_col="Check?")
+
+
 def _locations(ctx: Context) -> Table:
     rows = [[n["label"], n["kind"].replace("story_location", "location"), n["scenes"]["count"], eighths(n["eighths"]), _counts(n["by_int_ext"]),
              _counts(n["by_time"]), ", ".join(f"{c['name']} ({c['count']})" for c in n["characters"]),
@@ -422,7 +447,7 @@ def _to_check(ctx: Context) -> Table:
 
 
 _BUILDERS = {
-    "summary": _summary, "scenes": _scenes, "scene_summary": _scene_summary, "characters": _characters,
+    "summary": _summary, "scenes": _scenes, "scene_summary": _scene_summary, "characters": _characters, "cast_by_role": _cast_by_role,
     "locations": _locations, "combinations": _combinations, "continuity": _continuity, "to_check": _to_check,
 }
 

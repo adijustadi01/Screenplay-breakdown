@@ -89,6 +89,7 @@ def character_report(f: Facts, time_mode: str = "as_written") -> dict[str, Any]:
         roles = sorted({f.casting_roles[a.casting_role_id].name for a in apps
                         if a.casting_role_id in f.casting_roles})
         rows.append({
+            "by_role": _by_role(f, apps) if roles else [],
             "character_id": cid, "name": c.canonical_name, "kind": c.kind.value, "casting_roles": roles,
             "appearances": cell(app_scenes),
             "on_screen": cell(a.scene_id for a in app if a.presence == "present"),
@@ -116,6 +117,33 @@ def character_report(f: Facts, time_mode: str = "as_written") -> dict[str, Any]:
                                           and not r["voice_only"]["count"] and r["mentioned_only"]["count"]]),
         "characters": rows,
     }
+
+
+def _by_role(f: Facts, apps: list) -> list[dict[str, Any]]:
+    """One character's scenes split by casting role (CHILD / YOUNG / MIDDLE-AGED actor...).
+
+    The character's own row still counts every scene once; these rows show how many scenes
+    each actor has. Scenes not yet given a role are listed as "Role not chosen yet"."""
+    groups: dict[int | None, list] = defaultdict(list)
+    for a in apps:
+        if a.is_appearance or (a.casting_role_id in f.casting_roles and a.presence == "voice_only"):
+            groups[a.casting_role_id if a.casting_role_id in f.casting_roles else None].append(a)
+    out = []
+    for rid, group in groups.items():
+        sids = sorted({a.scene_id for a in group}, key=lambda i: f.scene_by_id[i].seq)
+        first, last = f.scene_by_id[sids[0]], f.scene_by_id[sids[-1]]
+        role = f.casting_roles.get(rid) if rid is not None else None
+        out.append({
+            "casting_role_id": rid, "name": role.name if role else "Role not chosen yet",
+            "kind": role.kind.value if role else None, "age_note": role.age_note if role else None,
+            "appearances": cell(sids), "eighths": sum(f.scene_by_id[s].eighths for s in sids),
+            "speaking": cell(a.scene_id for a in group if a.speaking == "speaking"),
+            "dialogue_blocks": sum(a.dialogue for a in group),
+            "first_appearance": {"scene_id": first.id, "number": first.number, "seq": first.seq},
+            "last_appearance": {"scene_id": last.id, "number": last.number, "seq": last.seq},
+        })
+    out.sort(key=lambda r: (r["casting_role_id"] is None, f.scene_by_id[r["first_appearance"]["scene_id"]].seq))
+    return out
 
 
 # --------------------------------------------------------------------------------- locations

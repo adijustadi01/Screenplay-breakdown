@@ -15,7 +15,9 @@ const EXPORT_KEY: Record<string, string> = {
   "crosstab:character_time": "character_time", "crosstab:location_time": "location_time",
   "crosstab:character_location_time": "character_location_time",
 };
-const REPORT_KEYS = Object.values(EXPORT_KEY);
+const REPORT_KEYS = [...Object.values(EXPORT_KEY), "cast_by_role"];
+// The Characters tab downloads the totals and the per-age / per-actor table together.
+const exportKeys = (tab: string) => (tab === "characters" ? ["characters", "cast_by_role"] : [EXPORT_KEY[tab]]);
 
 export function ReportsPage({ versionId, onDownload }: { versionId: number; onDownload: (preselect: string[] | null) => void }) {
   const [tab, setTab] = useState("scenes");
@@ -35,7 +37,7 @@ export function ReportsPage({ versionId, onDownload }: { versionId: number; onDo
       <div className="row" style={{ marginBottom: 12 }}>
         <nav className="tabs">{TABS.map(([k, label]) =>
           <button key={k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{label}</button>)}</nav>
-        <button className="btn" style={{ marginLeft: "auto" }} onClick={() => onDownload([EXPORT_KEY[tab]])}
+        <button className="btn" style={{ marginLeft: "auto" }} onClick={() => onDownload(exportKeys(tab))}
           title="Download this report as Excel or PDF — you can tick more reports in the next window">⬇ Download this report</button>
         <button className="btn" onClick={() => onDownload(REPORT_KEYS)} title="All the reports on this page">⬇ All reports</button>
         <label className="small">Time of day{" "}
@@ -72,15 +74,19 @@ function SceneReport({ r }: { r: any }) {
 }
 
 function CharacterReport({ r }: { r: any }) {
+  const hasAges = r.characters.some((c: any) => c.by_role?.length);
+  const [byAge, setByAge] = useState(true);
   return (
     <>
       <p>{r.unique_characters} characters on set or in voice · {r.speaking_characters} speaking · {r.silent_only_characters} silent only · {r.mentioned_only_characters} only mentioned</p>
+      {hasAges && <label className="small"><input type="checkbox" checked={byAge} onChange={(e) => setByAge(e.target.checked)} />{" "}
+        Also show scenes for each age / actor (e.g. child and adult Arjun) under the character's total</label>}
       <div className="scroll">
         <table>
           <thead><tr><th>Character</th><th>Casting roles</th><th className="num">Scenes</th><th className="num">On screen</th><th className="num">O.S.</th>
             <th className="num">V.O.</th><th className="num">Mentioned</th><th className="num">Speaking</th><th className="num">Silent</th>
             <th className="num">Dialogue</th><th className="num">Pages</th><th>First</th><th>Last</th><th className="num">To review</th></tr></thead>
-          <tbody>{r.characters.map((c: any) => (
+          <tbody>{r.characters.flatMap((c: any) => [
             <tr key={c.character_id}>
               <td><b>{c.name}</b>{c.kind === "group" && <span className="badge"> group</span>}</td>
               <td className="small">{c.casting_roles.join(", ")}</td>
@@ -96,7 +102,22 @@ function CharacterReport({ r }: { r: any }) {
               <td>{c.first_appearance && (c.first_appearance.number ?? `#${c.first_appearance.seq}`)}</td>
               <td>{c.last_appearance && (c.last_appearance.number ?? `#${c.last_appearance.seq}`)}</td>
               <td className="num"><CountCell cell={c.unreviewed} title={`${c.name}: unreviewed`} /></td>
-            </tr>))}</tbody>
+            </tr>,
+            ...(byAge ? (c.by_role ?? []).map((ro: any) => (
+              <tr key={`${c.character_id}:${ro.casting_role_id}`} className="small">
+                <td style={{ paddingLeft: 22 }}>↳ {ro.casting_role_id === null ? <span className="badge warning">{ro.name}</span> : ro.name}</td>
+                <td className="muted">{ro.age_note ? `age ${ro.age_note}` : ""}</td>
+                <td className="num"><CountCell cell={ro.appearances} title={`${ro.name}: scenes`} /></td>
+                <td colSpan={4}></td>
+                <td className="num"><CountCell cell={ro.speaking} title={`${ro.name}: speaking`} /></td>
+                <td></td>
+                <td className="num">{ro.dialogue_blocks}</td>
+                <td className="num">{eighths(ro.eighths)}</td>
+                <td>{ro.first_appearance.number ?? `#${ro.first_appearance.seq}`}</td>
+                <td>{ro.last_appearance.number ?? `#${ro.last_appearance.seq}`}</td>
+                <td></td>
+              </tr>)) : [])]
+            )}</tbody>
         </table>
       </div>
       <p className="small muted">Scenes = on screen + O.S. (actor needed). V.O. and mentioned are never counted as on set.</p>

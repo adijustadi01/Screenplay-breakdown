@@ -23,7 +23,9 @@ export function ExportDialog({ versionId, preselect, onClose, goStart }: {
     if (!versionId) return;
     api.get<Section[]>(`/api/script-versions/${versionId}/export/sections`).then((s) => {
       setSections(s);
-      setPicked(new Set(preselect ?? s.filter((x) => x.available).map((x) => x.key)));
+      const available = new Set(s.filter((x) => x.available).map((x) => x.key));
+      // A preselected part with nothing in it yet (e.g. no ages split) is left unticked.
+      setPicked(new Set((preselect ?? [...available]).filter((k) => available.has(k))));
     }).catch((e) => setErr(String(e.message ?? e)));
   }, [versionId, preselect]);
 

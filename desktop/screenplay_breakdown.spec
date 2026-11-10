@@ -23,6 +23,7 @@ datas = [
     (os.path.join(ROOT, "samples", "highway_song.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "monsoon_ledger_rev_blue.fountain"), "samples"),
     (os.path.join(ROOT, "samples", "river_years.fountain"), "samples"),
+    (os.path.join(ROOT, "samples", "three_ages.fountain"), "samples"),
 ]
 datas += collect_data_files("docx") + collect_data_files("reportlab")
 tess = os.environ.get("TESSERACT_DIR")

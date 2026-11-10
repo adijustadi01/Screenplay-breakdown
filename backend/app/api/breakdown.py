@@ -258,8 +258,10 @@ def scene_breakdown(scene_id: int, s: Session = Depends(get_session)) -> dict:
         while c.status == EntityStatus.MERGED and c.merged_into_id:
             c = s.get(Character, c.merged_into_id)
         role = s.get(CastingRole, a.casting_role_id) if a.casting_role_id else None
+        choices = [{"id": r.id, "name": r.name, "kind": r.kind.value} for r in s.scalars(
+            select(CastingRole).where(CastingRole.character_id == a.character_id).order_by(CastingRole.id))]
         apps.append(snapshot(a) | {"character_name": c.canonical_name, "character_kind": c.kind.value,
-                                   "casting_role": role.name if role else None,
+                                   "casting_role": role.name if role else None, "role_choices": choices,
                                    "counts": a.review_status != ReviewStatus.REJECTED})
     locs = []
     for sl in s.scalars(select(SceneLocation).where(SceneLocation.scene_id == scene_id)):

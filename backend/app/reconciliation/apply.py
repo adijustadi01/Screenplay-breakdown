@@ -202,7 +202,8 @@ def merge_item(session: Session, from_id: int, into_id: int, actor: str) -> dict
     return {"type": "merge_item", "from_id": src.id, "into_id": dst.id, "moved": moved}
 
 
-def apply_proposal(session: Session, proposal: dict, actor: str) -> dict[str, Any]:
+def apply_proposal(session: Session, proposal: dict, actor: str, changes: dict | None = None) -> dict[str, Any]:
+    """`changes` lets the AD adjust a proposal while accepting it (age roles: which ages share an actor)."""
     act = proposal.get("action")
     if act == "merge_item":
         return merge_item(session, proposal["from_id"], proposal["into_id"], actor)
@@ -212,7 +213,8 @@ def apply_proposal(session: Session, proposal: dict, actor: str) -> dict[str, An
         return casting_variant(session, proposal["variant_id"], proposal["character_id"], actor)
     if act == "age_roles":
         from .ages import apply_age_roles
-        return apply_age_roles(session, proposal["character_id"], proposal["roles"], actor)
+        return apply_age_roles(session, proposal["character_id"], proposal["roles"], actor,
+                               (changes or {}).get("actors"))
     if act == "merge_location":
         return merge_location(session, proposal["from_id"], proposal["into_id"], actor)
     if act == "reparent_location":

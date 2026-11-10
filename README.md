@@ -181,19 +181,32 @@ words, from Princeton WordNet), so it knows people from things: "A MIRROR", "A K
 "character" never speaks and the dictionary says it is an object, it goes on the *To check* list as
 *Looks like an object, not a person*, even when Claude did the reading.
 
-### One character, different ages → separate actors
+### One character, different ages → the director chooses the actors
 
-If the script introduces "ARJUN (6)" and later, after "TWENTY-TWO YEARS LATER", "ARJUN (28)", he is
-**one character** but needs **two actors**. The app reads the ages in the text, carries each age forward to
-the character's next scenes until the story jumps in time (YEARS LATER, PRESENT DAY, a flashback or a
-year in the heading), and puts a suggestion on the *To check* list:
+If the script introduces "ARJUN (10)", later "ARJUN (28)" and later "ARJUN (50)", he is **one character**
+who may need **several actors**. The app reads the ages in the text, carries each age forward to his next
+scenes until the story jumps in time (YEARS LATER, PRESENT DAY, a flashback or a year in the heading), and
+puts a suggestion on the *To check* list:
 
-> ARJUN — CHILD (6): scenes 1, 2, 3 · ARJUN — ADULT (28): scenes 5, 6, 8 · Age not clear: scene 7 (flashback)
+> ARJUN — CHILD (10): scenes 1, 2 · ARJUN — YOUNG (28): scenes 3, 4 · ARJUN — MIDDLE-AGED (50): scenes 5, 6
 
-Click **Accept — separate actors** to create the two casting roles. Reports still count ARJUN once; the
-DOOD lists each actor. Scenes whose age is not clear are left for you to assign; nothing is guessed.
-Children whose ages differ by 4 years or more, or adults 15 years apart, count as different actors.
-Try it with `samples/river_years.fountain`.
+**Age names:** baby (0–2), child (3–12), teen (13–19), young (20–39), middle-aged (40–59), old (60+).
+
+**Who plays which age?** Under the suggestion there is one row per age with a *Played by* choice
+(Actor A, B, C…). Each age gets its own actor unless you choose otherwise. Give two ages the same actor
+when one person will play both, for example with make-up or VFX de-ageing (the 28 and 50 become one role,
+"ARJUN — YOUNG + MIDDLE-AGED (28, 50)"), or click **Same actor for all** to keep one actor. **Decline** leaves
+everything as it is. Changed your mind? Open the item under *resolved*, click **Undo** and choose again.
+
+Ages close together are never split: 30, 35 and 40 stay one actor. The app only *suggests* a split when
+children are 4+ years apart or adults 15+ years apart, and nothing is guessed: a scene whose age is unclear
+is left for you to set with the **Played by** drop-down in the *Scenes* tab.
+
+**Counting scenes, both ways.** The *Cast & locations → Characters* report shows ARJUN once with all his
+scenes, and under it one line per actor (age) with its own scenes, pages, speaking scenes and first/last
+scene. Untick *Also show scenes for each age / actor* to see totals only. The downloads have both:
+*Characters* (totals) and *Characters by age / actor*. The DOOD lists each actor separately.
+Try it with `samples/three_ages.fountain`.
 
 ### What each department extracts (Stage 2)
 

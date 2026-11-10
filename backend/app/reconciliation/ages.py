@@ -82,11 +82,20 @@ class AgeGroup:
         return ((self.low or 0) + (self.high or 0)) / 2
 
     def label(self) -> str:
+        """BABY, CHILD, TEEN, YOUNG, MIDDLE-AGED or OLD; 'YOUNG / MIDDLE-AGED' when the ages span two."""
         if self.low is None:
             return " / ".join(sorted(self.notes)).upper()
-        m = self.mid
-        band = "BABY" if m < 3 else "CHILD" if m < 13 else "TEEN" if m < 18 else "ADULT" if m < 60 else "OLD"
-        return band
+        mids = sorted({(i.evidence.low + i.evidence.high) / 2 for i in self.items
+                       if i.evidence and i.evidence.low is not None} or {self.mid})
+        bands = list(dict.fromkeys(band_of(m) for m in mids))
+        return " / ".join(bands)
+
+
+def band_of(age: float) -> str:
+    """How an AD would describe the age: 0-2 baby, 3-12 child, 13-19 teen, 20-39 young,
+    40-59 middle-aged, 60+ old."""
+    return ("BABY" if age < 3 else "CHILD" if age < 13 else "TEEN" if age < 20 else "YOUNG" if age < 40
+            else "MIDDLE-AGED" if age < 60 else "OLD")
 
 
 def _age_from(num: str, decade: str | None, qualifier: str | None) -> tuple[int, int, str]:
@@ -245,11 +254,20 @@ def _scene_list(items: list[SceneAge], limit: int = 12) -> str:
     return ", ".join(labels[:limit]) + (f" and {len(labels) - limit} more" if len(labels) > limit else "")
 
 
+def _ages_text(notes) -> str:
+    ages = sorted((n for n in notes if any(ch.isdigit() for ch in n)),
+                  key=lambda n: int(re.sub(r"\D", "", n) or 0))
+    return ", ".join(ages)
+
+
+def compose_role_name(character_name: str, bands: list[str], notes) -> str:
+    """'ARJUN — CHILD (10)', 'ARJUN — YOUNG + MIDDLE-AGED (28, 50)'."""
+    detail = _ages_text(notes)
+    return f"{character_name} — {' + '.join(dict.fromkeys(bands))}" + (f" ({detail})" if detail else "")
+
+
 def role_name(character: Character, g: AgeGroup) -> str:
-    ages = sorted(n for n in g.notes if any(ch.isdigit() for ch in n))
-    words = sorted(n for n in g.notes if not any(ch.isdigit() for ch in n))
-    detail = ", ".join(ages) if ages else ", ".join(words)
-    return f"{character.canonical_name} — {g.label()}" + (f" ({detail})" if detail and g.low is not None else "")
+    return compose_role_name(character.canonical_name, [g.label()], g.notes)
 
 
 def propose_age_roles(session: Session, version_id: int, add) -> None:
@@ -297,25 +315,57 @@ def propose_age_roles(session: Session, version_id: int, add) -> None:
             if stated:
                 line += f". Script says: {'; '.join(repr(s) for s in stated)}"
             lines.append(line)
-            plan.append({"name": name, "age_note": ", ".join(sorted(g.notes)),
+            plan.append({"name": name, "band": g.label(), "notes": sorted(g.notes),
+                         "age_note": ", ".join(sorted(g.notes)),
+                         "scene_count": len({i.scene.id for i in g.items}),
                          "appearance_ids": sorted(i.appearance.id for i in g.items)})
         if unknown:
             lines.append(f"• Age not clear: scene(s) {_scene_list(unknown)} — choose the role for these yourself.")
-        msg = (f"{ch.canonical_name} appears at different ages, and one actor can't play them all.\n"
+        msg = (f"{ch.canonical_name} appears at quite different ages, which usually means different actors.\n"
                + "\n".join(lines)
-               + f"\nAccept to keep {ch.canonical_name} as ONE character but create "
-               f"{len(groups)} casting roles (one actor each) and put every scene under its role. "
-               f"The Schedule & DOOD will then list each actor separately.")
+               + f"\nThis is only a suggestion — the director decides. Choose below which ages one actor "
+               f"plays (e.g. the same actor de-aged with VFX), then accept. {ch.canonical_name} stays ONE "
+               f"character in every report; the Schedule & DOOD list each actor separately.")
         sig = "|".join(f"{p['name']}:{','.join(map(str, p['appearance_ids']))}" for p in plan)
         add(f"age_roles:{ch.id}:{hashlib.sha1(sig.encode()).hexdigest()[:12]}", "age_roles", msg,
             {"action": "age_roles", "character_id": ch.id, "roles": plan}, 0.75, ("characters", ch.id))
 
 
-def apply_age_roles(session: Session, character_id: int, roles: list[dict], actor: str) -> dict:
+def merge_plans(character_name: str, roles: list[dict], actors: list | None) -> list[dict]:
+    """Combine the age groups the AD says one actor plays. `actors[i]` labels group i's actor;
+    groups with the same label become one casting role. None = one actor per group."""
+    if not actors:
+        return roles
+    if len(actors) != len(roles):
+        raise ValueError("choose an actor for every age")
+    if len(set(map(str, actors))) == 1:          # one actor for every age
+        ids = sorted(i for r in roles for i in r["appearance_ids"])
+        notes = [n for r in roles for n in r.get("notes", [])]
+        return [{"name": character_name, "age_note": ", ".join(notes) or None, "appearance_ids": ids}]
+    merged: dict[str, dict] = {}
+    for r, who in zip(roles, actors):
+        m = merged.setdefault(str(who), {"bands": [], "notes": [], "appearance_ids": []})
+        m["bands"].append(r.get("band") or r["name"].split(" — ", 1)[-1].split(" (")[0])
+        m["notes"] += r.get("notes") or [r.get("age_note") or ""]
+        m["appearance_ids"] += r["appearance_ids"]
+    out = []
+    for m in merged.values():
+        out.append({"name": compose_role_name(character_name, m["bands"], m["notes"]),
+                    "age_note": ", ".join(n for n in m["notes"] if n) or None,
+                    "appearance_ids": sorted(m["appearance_ids"])})
+    return out
+
+
+def apply_age_roles(session: Session, character_id: int, roles: list[dict], actor: str,
+                    actors: list | None = None) -> dict:
     from ..models.enums import CastingRoleKind, ExtractorKind
     from ..review.audit import log_event
-    from .apply import _resolve_char
+    from .apply import ProposalError, _resolve_char
     ch = _resolve_char(session, character_id)
+    try:
+        roles = merge_plans(ch.canonical_name, roles, actors)
+    except ValueError as exc:
+        raise ProposalError(str(exc)) from exc
     created, assigned = [], []
     existing = {r.name: r for r in session.scalars(select(CastingRole).where(CastingRole.character_id == ch.id))}
     for plan in roles:
@@ -334,7 +384,8 @@ def apply_age_roles(session: Session, character_id: int, roles: list[dict], acto
                 a.casting_role_id = role.id
                 assigned.append(a.id)
     session.flush()
-    return {"type": "age_roles", "character_id": ch.id, "created_roles": created, "assigned": assigned}
+    return {"type": "age_roles", "character_id": ch.id, "created_roles": created, "assigned": assigned,
+            "actors": actors}
 
 
 def undo_age_roles(session: Session, record: dict, actor: str) -> None:

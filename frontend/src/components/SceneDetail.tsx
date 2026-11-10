@@ -8,6 +8,7 @@ type Appearance = {
   dialogue_block_count: number; confidence: number; needs_review: boolean; review_status: string;
   review_reason: string | null; source_element_start_id: number | null; source_excerpt: string | null;
   quantity_min: number | null; quantity_max: number | null; quantity_raw: string | null; extracted_by: string;
+  casting_role_id: number | null; role_choices: { id: number; name: string; kind: string }[];
 };
 type Scene = {
   id: number; scene_number: string | null; seq: number; heading_raw: string | null; int_ext: string;
@@ -59,7 +60,15 @@ export function SceneDetail({ sceneId }: { sceneId: number }) {
           {bd.appearances.map((a) => (
             <tr key={a.id} className={a.review_status === "rejected" ? "rejected" : ""}
                 onMouseEnter={() => setHl(a.source_element_start_id)} onMouseLeave={() => setHl(null)}>
-              <td><b>{a.character_name}</b>{a.casting_role && a.casting_role !== a.character_name && <div className="small muted">as {a.casting_role}</div>}
+              <td><b>{a.character_name}</b>
+                {a.role_choices.length > 1 ? (
+                  <div className="small">Played by:{" "}
+                    <select value={a.casting_role_id ?? ""} title="Which actor (age) plays this character in this scene"
+                            onChange={(e) => act(a.id, "edit", { casting_role_id: e.target.value ? Number(e.target.value) : null })}>
+                      <option value="">— not chosen yet —</option>
+                      {a.role_choices.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select></div>
+                ) : a.casting_role && a.casting_role !== a.character_name && <div className="small muted">as {a.casting_role}</div>}
                 {(a.quantity_raw || a.quantity_min !== null) && <div className="small muted">headcount: {a.quantity_min ?? "?"}{a.quantity_max !== a.quantity_min ? `–${a.quantity_max ?? "?"}` : ""} {a.quantity_raw && `(“${a.quantity_raw}”)`}</div>}</td>
               <td><select value={a.presence} onChange={(e) => act(a.id, "edit", { presence: e.target.value })}>
                 {PRESENCES.map((p) => <option key={p}>{p}</option>)}</select></td>

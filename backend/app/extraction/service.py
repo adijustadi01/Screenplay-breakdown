@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -91,6 +91,7 @@ class _Ctx:
     script_cue_names: set[str]
     char_cache: dict[str, Character]
     loc_cache: dict[tuple[int | None, str], Location]
+    prev_roles: dict[int, int] = field(default_factory=dict)   # character -> casting role before a re-read
 
 
 def run_extraction(
@@ -246,10 +247,14 @@ def _clear_unlocked(ctx: _Ctx, scene: Scene) -> set[int]:
     """Remove this scene's previous machine facts; return character ids that are locked."""
     s = ctx.session
     locked_chars = set()
+    ctx.prev_roles = {}
     for a in s.scalars(select(Appearance).where(Appearance.scene_id == scene.id)):
         if a.review_status in LOCKED or a.extracted_by == ExtractorKind.HUMAN:
             locked_chars.add(a.character_id)
         else:
+            if a.casting_role_id:
+                # Keep the casting role the AD chose (e.g. accepted age roles) when the scene is re-read.
+                ctx.prev_roles[a.character_id] = a.casting_role_id
             s.delete(a)
     for sl in s.scalars(select(SceneLocation).where(SceneLocation.scene_id == scene.id)):
         if not (sl.review_status in LOCKED or sl.extracted_by == ExtractorKind.HUMAN):
@@ -359,6 +364,8 @@ def apply_extraction(ctx: _Ctx, scene: Scene, els: list[ScriptElement], text: st
             CastingRole.character_id == char_id))}
         if roles and f.get("name_as_written"):
             f["casting_role_id"] = roles.get(normalize_name(f["name_as_written"]))
+        if roles and not f.get("casting_role_id") and ctx.prev_roles.get(char_id) in roles.values():
+            f["casting_role_id"] = ctx.prev_roles[char_id]
         a = Appearance(scene_id=scene.id, character_id=char_id, source_scene_id=scene.id,
                        extraction_run_id=ctx.run.id, needs_review=bool(reasons),
                        review_reason=",".join(reasons) or None, **f)

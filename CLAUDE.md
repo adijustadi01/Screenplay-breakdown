@@ -25,7 +25,12 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 - **Age-based casting roles:** `backend/app/reconciliation/ages.py` reads ages from the text
   ("ARJUN (6)" … "TWENTY YEARS LATER" … "ARJUN (28)"), carries them forward until a time jump, and proposes
   one casting role per age group (one character, separate actors). Proposal action `age_roles`, undoable.
-  Sample: `samples/river_years.fountain`; tests: `backend/tests/test_ages_and_dictionary.py`.
+  Age names: baby/child/teen/young (20–39)/middle-aged (40–59)/old (60+). The AD picks which ages share an
+  actor when accepting (`changes={"actors": ["A","B","B"]}` → `merge_plans`). Character report rows carry
+  `by_role` (scenes per actor); export section `cast_by_role`; Scenes tab has a "Played by" picker
+  (edit `casting_role_id`, validated to the same character). Re-extraction keeps chosen roles (`prev_roles`).
+  The user insists: the app suggests, the director decides.
+  Samples: `samples/river_years.fountain`, `samples/three_ages.fountain`; tests: `backend/tests/test_ages_and_dictionary.py`.
 
 **Stack:**
 - Backend: Python 3.11+, FastAPI, SQLAlchemy 2 (SQLite).
@@ -47,7 +52,7 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 
 ## Run and test
 ```bash
-cd backend && pip install -e ".[dev]" && python -m pytest -q            # 219 tests
+cd backend && pip install -e ".[dev]" && python -m pytest -q            # 222 tests
 cd frontend && npm ci && npm run build
 cd backend && python -m uvicorn app.main:app --port 8000                  # open http://localhost:8000
 ```
