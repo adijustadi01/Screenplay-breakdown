@@ -90,6 +90,11 @@ score with `python -m app.cli dept-accuracy <version> ../samples/highway_song.gr
 multiple units; stripboard drag-and-drop; call sheets; Movie Magic / StudioBinder export; reading
 revision asterisks and coloured pages from PDFs as extra evidence; (Excel and PDF export ✅ done).
 
+**Added after Stage 3**
+- ✅ Built-in dictionary (WordNet) for the free reader: people vs objects, animals and sounds (`app/lexicon`).
+- ✅ Age-based casting roles: one character at clearly different ages → one casting role per age, proposed
+  for review (`app/reconciliation/ages.py`).
+
 **Known limitations to revisit (from Stage 1)**
 - Live Claude extraction accuracy has not been measured in the build environment (no API key
   there). Measure it with `python -m app.cli accuracy` after a Claude run; the offline rules

@@ -18,6 +18,14 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
   and `pdf.py` (reportlab) write them. Routes: `GET /api/script-versions/{id}/export.xlsx|.pdf?sections=a,b`
   and `.../export/sections`. In the UI, the download window is `frontend/src/components/ExportDialog.tsx`,
   opened from the top-bar button, which is always visible.
+- **Built-in dictionary (no API key):** `backend/app/lexicon/` holds Princeton WordNet nouns (built by
+  `backend/tools/build_lexicon.py`) so the free reader knows people from objects ("A MIRROR" is not cast;
+  "A FAKIR", "THE GOONS" are). Any no-dialogue "character" the dictionary calls a thing is flagged
+  `looks_like_object`, on the Claude path too. `EXTRA_PEOPLE` / `EXTRA_GROUPS` there add Indian/film words.
+- **Age-based casting roles:** `backend/app/reconciliation/ages.py` reads ages from the text
+  ("ARJUN (6)" … "TWENTY YEARS LATER" … "ARJUN (28)"), carries them forward until a time jump, and proposes
+  one casting role per age group (one character, separate actors). Proposal action `age_roles`, undoable.
+  Sample: `samples/river_years.fountain`; tests: `backend/tests/test_ages_and_dictionary.py`.
 
 **Stack:**
 - Backend: Python 3.11+, FastAPI, SQLAlchemy 2 (SQLite).
@@ -39,7 +47,7 @@ A screenplay production-breakdown app. Stages 1–3 are complete:
 
 ## Run and test
 ```bash
-cd backend && pip install -e ".[dev]" && python -m pytest -q            # 209 tests
+cd backend && pip install -e ".[dev]" && python -m pytest -q            # 219 tests
 cd frontend && npm ci && npm run build
 cd backend && python -m uvicorn app.main:app --port 8000                  # open http://localhost:8000
 ```

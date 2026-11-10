@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 
+from ..lexicon import is_people
 from ..models.enums import ElementType
 from .cues import normalize_name
 from .schema import CharacterOut, LocationOut, SceneExtraction
@@ -19,37 +20,16 @@ MODIFIERS = {"MOVING", "FLASHBACK", "ESTABLISHING", "CONTINUOUS", "PRESENT DAY",
              "STOCK", "INTERCUT", "B&W", "BLACK AND WHITE", "SLOW MOTION"}
 TITLES = {"DR.", "DR", "MR.", "MR", "MRS.", "MRS", "MS.", "MS", "INSPECTOR", "NURSE", "OFFICER",
           "CONSTABLE", "SERGEANT", "CAPTAIN", "PROFESSOR", "UNCLE", "AUNTY", "AUNT"}
-VERSION_WORDS = {"YOUNG", "OLD", "OLDER", "YOUNGER", "LITTLE", "ADULT", "TEENAGE", "BABY"}
+VERSION_WORDS = {"YOUNG", "OLD", "OLDER", "YOUNGER", "LITTLE", "ADULT", "TEENAGE", "TEEN", "BABY", "CHILD",
+                 "KID", "ELDERLY", "AGED", "GROWN", "GROWN-UP", "MIDDLE-AGED", "INFANT", "TODDLER"}
 NOT_NAMES = {"INT", "EXT", "CONTINUED", "CUT", "FADE", "THE", "END", "DAY", "NIGHT", "POV", "V.O.", "O.S."}
 
 _INTRO_RE = re.compile(r"\b((?:[A-Z][A-Z.'’\-]+)(?:\s+[A-Z][A-Z.'’\-0-9]+){0,3})\s*\((\d{1,3}s?|[A-Z]?\d+[A-Za-z]*)\)")
 _GROUP_RE = re.compile(r"\b(" + "|".join(NUMBER_WORDS) + r"|\d+)\s+([A-Z]{3,}(?:\s+[A-Z]{3,})?)\b")
 _ARTICLE_CAPS_RE = re.compile(r"\b(?:A|An|The)\s+([A-Z]{3,}(?:\s+[A-Z]{2,}){0,2})\b")
 # Screenwriters put props and sounds in CAPS too ("a MIRROR", "The GUNSHOT"), so "A/The + CAPS" only
-# counts as a new character when its last word names a person ("A CONSTABLE", "A WARD BOY").
-PERSON_WORDS = {
-    "MAN", "MEN", "WOMAN", "WOMEN", "BOY", "BOYS", "GIRL", "GIRLS", "CHILD", "KID", "KIDS", "BABY", "LADY",
-    "GENTLEMAN", "GUY", "GUYS", "TEEN", "TEENAGER", "PERSON", "PEOPLE", "STRANGER", "FIGURE",
-    "CONSTABLE", "COP", "COPS", "OFFICER", "INSPECTOR", "SERGEANT", "SOLDIER", "SOLDIERS", "GUARD", "GUARDS",
-    "WATCHMAN", "SECURITY", "COMMISSIONER", "CAPTAIN", "COMMANDER", "MAJOR", "COLONEL", "GENERAL",
-    "DOCTOR", "NURSE", "SURGEON", "PATIENT", "COMPOUNDER", "PRIEST", "PANDIT", "POOJARI", "SADHU", "MONK",
-    "IMAM", "NUN", "FATHER", "MOTHER", "BROTHER", "SISTER", "SON", "DAUGHTER", "WIFE", "HUSBAND", "UNCLE",
-    "AUNTY", "AUNT", "GRANDFATHER", "GRANDMOTHER", "GRANDMA", "GRANDPA", "COUSIN", "NEPHEW", "NIECE",
-    "FRIEND", "NEIGHBOUR", "NEIGHBOR", "LANDLORD", "LANDLADY", "TENANT", "SERVANT", "MAID", "COOK", "BUTLER",
-    "DRIVER", "CHAUFFEUR", "PILOT", "CONDUCTOR", "PORTER", "COOLIE", "WAITER", "WAITRESS", "BARTENDER",
-    "MANAGER", "CLERK", "CASHIER", "ACCOUNTANT", "BOSS", "OWNER", "SHOPKEEPER", "VENDOR", "SELLER", "HAWKER",
-    "MERCHANT", "BROKER", "BANKER", "LAWYER", "ADVOCATE", "JUDGE", "MINISTER", "POLITICIAN", "MLA", "MP",
-    "TEACHER", "PRINCIPAL", "STUDENT", "STUDENTS", "PROFESSOR", "REPORTER", "JOURNALIST", "PHOTOGRAPHER",
-    "ANCHOR", "FARMER", "VILLAGER", "VILLAGERS", "FISHERMAN", "LABOURER", "LABORER", "WORKER", "WORKERS",
-    "MECHANIC", "TAILOR", "BARBER", "DHOBI", "PEON", "POSTMAN", "MILKMAN", "BEGGAR", "THIEF", "ROBBER",
-    "GOON", "GOONS", "HENCHMAN", "HENCHMEN", "THUG", "THUGS", "GANGSTER", "KILLER", "ASSASSIN", "SMUGGLER",
-    "DON", "BODYGUARD", "HITMAN", "RECEPTIONIST", "SECRETARY", "ASSISTANT", "ATTENDANT", "AGENT", "SPY",
-    "DANCER", "DANCERS", "SINGER", "MUSICIAN", "DRUMMER", "ACTOR", "ACTRESS", "HERO", "HEROINE", "VILLAIN",
-    "KING", "QUEEN", "PRINCE", "PRINCESS", "MINISTERS", "PRISONER", "CONVICT", "WARDEN", "JAILER",
-    "MOURNER", "MOURNERS", "CROWD", "MOB", "GANG", "DOUBLE", "STUNTMAN", "CUSTOMER", "PASSENGER",
-    "PASSENGERS", "TOURIST", "VISITOR", "GUEST", "GUESTS", "BRIDE", "GROOM", "ELDER", "ELDERS", "CHIEF",
-    "HEADMAN", "LEADER", "PLAYER", "PLAYERS", "COACH", "UMPIRE", "FAN", "FANS", "SAILOR", "CREW",
-}
+# counts as a new character when the built-in dictionary says it names people ("A CONSTABLE",
+# "A WARD BOY", "THE GOONS"). See app/lexicon.
 
 
 def intro_names(action_texts: list[str]) -> set[str]:
@@ -60,7 +40,7 @@ def intro_names(action_texts: list[str]) -> set[str]:
             names.add(normalize_name(m.group(1)))
         for m in _ARTICLE_CAPS_RE.finditer(t):
             phrase = m.group(1)
-            if phrase not in NOT_NAMES and phrase.split()[-1] in PERSON_WORDS:
+            if phrase not in NOT_NAMES and is_people(phrase):
                 names.add(normalize_name(phrase))
     return {n for n in names if n not in NOT_NAMES}
 
@@ -113,6 +93,8 @@ class HeuristicExtractor:
                 age_or_version=None, evidence=evidence, confidence=conf, uncertainty_note=None)
 
         for m in _GROUP_RE.finditer(action):
+            if not is_people(m.group(2)):
+                continue        # "TWO JEEPS", "THREE GUNSHOTS" are things, not a group of people
             n = m.group(1)
             qn = int(n) if n.isdigit() else NUMBER_WORDS[n]
             add(normalize_name(m.group(2)), "present", "silent", m.group(0), 0.7, True, m.group(0), qn)

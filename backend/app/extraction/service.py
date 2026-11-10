@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db.base import utcnow
+from ..lexicon import is_not_people
 from ..models import (
     Appearance,
     Character,
@@ -302,6 +303,10 @@ def apply_extraction(ctx: _Ctx, scene: Scene, els: list[ScriptElement], text: st
             presence, speaking, conf = cue.presence, Speaking.SPEAKING, max(conf, 0.95)
         elif speaking == Speaking.SPEAKING:
             reasons.append("speaking_without_cue")
+        if cue is None and key not in ctx.script_cue_names and is_not_people(key):
+            # Never speaks anywhere, and the dictionary says "MIRROR" / "DOG" is not a person.
+            reasons.append("looks_like_object")
+            conf = min(conf, 0.4)
         elif presence in (Presence.MENTIONED,):
             speaking = Speaking.SILENT
         if presence == Presence.UNCERTAIN:
@@ -458,4 +463,4 @@ def _apply_location(ctx: _Ctx, scene: Scene, result: SceneExtraction, label: str
             entity_table="scene_locations", entity_id=sl.id, scene_id=scene.id, confidence=sl.confidence))
 
 
-__all__ = ["run_extraction", "scene_text", "apply_extraction", "CharacterOut"]
+__all__ = ["CharacterOut", "apply_extraction", "run_extraction", "scene_text"]

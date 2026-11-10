@@ -32,6 +32,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.lexicon" = ["nouns.tsv.gz", "WORDNET_LICENSE.txt"]
+"app.extraction" = ["prompts/*.md"]
+"app.departments" = ["prompts/*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

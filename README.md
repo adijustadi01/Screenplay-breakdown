@@ -40,7 +40,7 @@ Further reading:
 
 ## Use it in your browser — no install (GitHub Codespaces)
 
-Open **https://codespaces.new/adijustadi01/Screenplay-breakdown?ref=claude/beautiful-hypatia-mzwj8e** and
+Open **https://codespaces.new/adijustadi01/Screenplay-breakdown?ref=claude/practical-bohr-2hu17j** and
 click **Create codespace**.
 
 - **First start:** GitHub prepares a private computer for you, which takes a few minutes the first
@@ -172,6 +172,28 @@ Compare drafts (= Revisions), and Import details (= Import & coverage, the advan
 | **Query** | 1–2 | Combine filters: location (including sub-locations), INT/EXT, time, characters (all/any), and **department elements**. Example: *EXT + NIGHT + RAGHAV + motorcycle + rain*. Count by rows and columns; every cell opens its scenes. |
 | **Revisions** | 3 | Import the revised draft into the same project (it becomes current), then **Compare** with the previous draft. Unchanged scenes keep your reviewed facts; extract only the changed/added scenes with one click. See which scenes changed and, per scene, the cast (characters) and casting roles, locations and department items added, removed or re-quantified. Also shown: the text diff, script-wide changes, and scheduled scenes affected. Doubtful matches can be re-matched by hand. |
 | **Schedule** | 3 | **Infer story days**, which you can correct in the Story days table. Create a schedule and add shooting days (with dates), or click **Suggest days** for a starting point grouped by location and day/night. Assign scenes from the unscheduled pool; scenes can be split across days. The **Story time vs shooting time** panel, **one-liner** and **DOOD** follow. **Create missing casting roles** firms up implicit DOOD rows, and **Carry schedule forward** moves a schedule onto a revised draft. |
+
+### The free reader (no API key) and the built-in dictionary
+
+Without an API key the app uses its own reader. It has a built-in English dictionary (about 235,000
+words, from Princeton WordNet), so it knows people from things: "A MIRROR", "A KNIFE", "TWO JEEPS" or
+"THE GUNSHOT" are not put in the cast, but "A FAKIR", "A WARD BOY" or "THREE VILLAGERS" are. If a
+"character" never speaks and the dictionary says it is an object, it goes on the *To check* list as
+*Looks like an object, not a person*, even when Claude did the reading.
+
+### One character, different ages → separate actors
+
+If the script introduces "ARJUN (6)" and later, after "TWENTY-TWO YEARS LATER", "ARJUN (28)", he is
+**one character** but needs **two actors**. The app reads the ages in the text, carries each age forward to
+the character's next scenes until the story jumps in time (YEARS LATER, PRESENT DAY, a flashback or a
+year in the heading), and puts a suggestion on the *To check* list:
+
+> ARJUN — CHILD (6): scenes 1, 2, 3 · ARJUN — ADULT (28): scenes 5, 6, 8 · Age not clear: scene 7 (flashback)
+
+Click **Accept — separate actors** to create the two casting roles. Reports still count ARJUN once; the
+DOOD lists each actor. Scenes whose age is not clear are left for you to assign; nothing is guessed.
+Children whose ages differ by 4 years or more, or adults 15 years apart, count as different actors.
+Try it with `samples/river_years.fountain`.
 
 ### What each department extracts (Stage 2)
 

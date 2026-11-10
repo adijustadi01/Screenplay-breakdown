@@ -210,6 +210,9 @@ def apply_proposal(session: Session, proposal: dict, actor: str) -> dict[str, An
         return merge_character(session, proposal["from_id"], proposal["into_id"], actor)
     if act == "casting_variant":
         return casting_variant(session, proposal["variant_id"], proposal["character_id"], actor)
+    if act == "age_roles":
+        from .ages import apply_age_roles
+        return apply_age_roles(session, proposal["character_id"], proposal["roles"], actor)
     if act == "merge_location":
         return merge_location(session, proposal["from_id"], proposal["into_id"], actor)
     if act == "reparent_location":
@@ -249,6 +252,9 @@ def undo(session: Session, record: dict[str, Any], actor: str) -> None:
                     session.delete(r)
         session.flush()
         log_event(session, src.project_id, src, "unmerge", actor)
+    elif t == "age_roles":
+        from .ages import undo_age_roles
+        undo_age_roles(session, record, actor)
     elif t == "merge_location":
         for child in record.get("child_merges", []):
             undo(session, child, actor)

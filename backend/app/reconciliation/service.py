@@ -106,6 +106,10 @@ def propose(session: Session, version_id: int) -> dict[str, int]:
                 {"action": "merge_character", "from_id": small.id, "into_id": big.id}, ratio,
                 ("characters", small.id))
 
+    # One character at clearly different ages (ARJUN (6) ... ARJUN (28)) -> one casting role per age.
+    from .ages import propose_age_roles
+    propose_age_roles(session, version_id, add)
+
     # ---------------------------------------------------------------- locations
     locs = session.scalars(select(Location).where(
         Location.project_id == pid, Location.status == EntityStatus.ACTIVE)).all()

@@ -11,6 +11,37 @@ const CHOICES: Record<string, string[]> = {
   element_type: ["scene_heading", "action", "character", "parenthetical", "dialogue", "transition", "shot", "page_header", "unknown"],
 };
 
+/** Plain-English names for the reason codes the backend stores. Unknown codes are shown as written. */
+const REASONS: Record<string, string> = {
+  age_roles: "Same character at different ages — separate actors?",
+  looks_like_object: "Looks like an object, not a person",
+  casting_variant: "Different version of a character (young / old)",
+  character_alias: "Two names for the same person?",
+  character_spelling: "Same name spelt two ways?",
+  location_variant: "Same place spelt two ways?",
+  location_parent: "Part of a bigger location?",
+  item_variant: "Same item under two names?",
+  low_confidence: "Not sure — please check",
+  evidence_not_found: "Couldn't find this in the script text",
+  uncertain_presence: "Not sure if they are in the scene",
+  unknown_headcount: "Number of people not stated",
+  unknown_quantity: "Quantity not stated",
+  speaking_without_cue: "Marked as speaking, but has no lines",
+  llm_disagrees_with_cue: "Reader and dialogue cue disagree",
+  linked_by_inference: "Matched to a character by guess",
+  unknown_character: "Unknown character",
+  character_not_in_scene: "Character not found in this scene",
+  extraction_failed: "Couldn't read this scene",
+  department_extraction_failed: "Couldn't read departments for this scene",
+  int_ext_suggestion: "INT or EXT?",
+  story_day_uncertain: "Story day is a guess",
+  story_days_inferred: "Story days were guessed",
+  relative_time: "Time copied from an earlier scene",
+  no_usable_time: "No time of day given",
+  inferred: "Inferred — please check",
+};
+const reasonLabel = (r: string) => REASONS[r] ?? r.replace(/_/g, " ");
+
 /** The review queue: flagged and low-confidence items first, each beside its exact source passage. */
 export function ReviewPage({ projectId, versionId, onChanged }: { projectId: number; versionId: number; onChanged: () => void }) {
   const [status, setStatus] = useState("open");
@@ -72,14 +103,14 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
             <option value="">all severities</option><option>error</option><option>warning</option><option>info</option>
           </select>
           <select value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="">all reasons</option>{reasons.map((r) => <option key={r}>{r}</option>)}
+            <option value="">all reasons</option>{reasons.map((r) => <option key={r} value={r}>{reasonLabel(r)}</option>)}
           </select>
         </div>
         <div className="row small" style={{ marginBottom: 8 }}>
           <b style={{ flex: 1 }}>{data.total} item(s)</b>
           {checked.size > 0 && <>
             <button className="btn" onClick={() => bulk("confirm")}>Confirm {checked.size}</button>
-            <button className="btn" onClick={() => bulk("accept")}>Accept merges</button>
+            <button className="btn" onClick={() => bulk("accept")}>Accept suggestions</button>
             <button className="btn" onClick={() => bulk("dismiss")}>Dismiss</button></>}
         </div>
         <div className="scroll">
@@ -89,7 +120,7 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
                 <input type="checkbox" checked={checked.has(i.id)} onClick={(e) => e.stopPropagation()}
                   onChange={(e) => { const s = new Set(checked); e.target.checked ? s.add(i.id) : s.delete(i.id); setChecked(s); }} />
                 <span className={`badge ${i.severity}`}>{i.severity}</span>
-                <span className="small muted">{i.category} · {i.reason}{i.scene_label ? ` · sc ${i.scene_label}` : ""}
+                <span className="small muted">{i.category} · {reasonLabel(i.reason)}{i.scene_label ? ` · sc ${i.scene_label}` : ""}
                   {i.confidence !== null && ` · ${Math.round(i.confidence * 100)}%`}</span>
               </div>
               <div className="small" style={{ marginTop: 3 }}>{i.message.length > 160 ? i.message.slice(0, 160) + "…" : i.message}</div>
@@ -100,9 +131,9 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
       <section className="panel">
         {!detail ? <p className="muted">Select an item. Errors and warnings are listed first, then the lowest-confidence items.</p> : (
           <>
-            <div className="row"><span className={`badge ${detail.severity}`}>{detail.severity}</span><b>{detail.reason}</b>
+            <div className="row"><span className={`badge ${detail.severity}`}>{detail.severity}</span><b>{reasonLabel(detail.reason)}</b>
               <span className="muted small">{detail.category} · {detail.status}{detail.resolution ? ` (${detail.resolution})` : ""}</span></div>
-            <p>{detail.message}</p>
+            <p style={{ whiteSpace: "pre-wrap" }}>{detail.message}</p>
             {detail.entity && detail.entity_table === "breakdown_occurrences" && <p className="small muted">
               Item: <b>{detail.entity.item_name}</b> ({detail.entity.department}, {detail.entity.item_category}) — quantity {detail.entity.quantity_max ?? "unknown"}
               {detail.entity.is_inferred && <b> · INFERRED</b>}; extracted by {detail.entity.extracted_by}; evidence “{detail.entity.source_excerpt}”</p>}
@@ -111,7 +142,7 @@ export function ReviewPage({ projectId, versionId, onChanged }: { projectId: num
             {err && <p className="error">{err}</p>}
             {detail.status === "open" && (detail.has_proposal ? (
               <div className="row">
-                <button className="btn primary" onClick={() => act("accept")}>Accept merge</button>
+                <button className="btn primary" onClick={() => act("accept")}>{detail.proposal?.action === "age_roles" ? "Accept — separate actors" : "Accept merge"}</button>
                 <button className="btn" onClick={() => act("decline")}>Decline</button>
               </div>
             ) : (
